@@ -111,6 +111,20 @@
       </div>
       <div id="paneLyrics" class="hidden">
         <textarea id="lyricsField" class="input-textarea lyrics-textarea" rows="14" placeholder="Cole a letra da música aqui..."></textarea>
+
+        <!-- ✅ NOVO: Link da Cifra -->
+        <div class="cifra-row">
+          <div style="flex:1; min-width:0;">
+            <label class="input-label">Link da cifra</label>
+            <input id="cifraUrlField" class="input-text" type="url" placeholder="Cole o link da cifra (Cifra Club)..." />
+          </div>
+
+          <div class="cifra-actions">
+            <button id="openCifraBtn" class="btn btn-soft" type="button">🎸 Abrir</button>
+            <button id="saveCifraBtn" class="btn btn-primary" type="button">💾 Salvar link</button>
+          </div>
+        </div>
+
         <div class="detail-actions">
           <button id="saveLyrics" class="btn btn-primary">💾 Salvar letra</button>
         </div>
