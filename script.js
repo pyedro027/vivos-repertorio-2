@@ -55,6 +55,11 @@
     setlistEmpty:    document.getElementById("setlistEmpty"),
     clearSetlistBtn: document.getElementById("clearSetlistBtn"),
     setlistCount:    document.getElementById("setlistCount"),
+
+    // ✅ NOVO: Cifra
+    cifraUrlField:   document.getElementById("cifraUrlField"),
+    openCifraBtn:    document.getElementById("openCifraBtn"),
+    saveCifraBtn:    document.getElementById("saveCifraBtn"),
   };
 
   // ===================== UTILS =====================
@@ -107,6 +112,41 @@
       el.confirmYes.addEventListener("click", onYes);
       el.confirmNo.addEventListener("click", onNo);
     });
+  }
+
+  // ✅ NOVO: gera link padrão de busca no Cifra Club
+  function getDefaultCifraSearchUrl(title) {
+    const q = encodeURIComponent(title || "");
+    return `https://www.cifraclub.com.br/?q=${q}`;
+  }
+
+  // ✅ NOVO: abrir cifra
+  function openCifra() {
+    if (!state.selectedSong) return;
+    const url = (el.cifraUrlField?.value || "").trim() || getDefaultCifraSearchUrl(state.selectedSong.title);
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+
+  // ✅ NOVO: salvar cifra no Supabase
+  async function saveCifraUrl() {
+    if (!state.selectedSong) return;
+
+    const raw = (el.cifraUrlField?.value || "").trim();
+    const url = raw || getDefaultCifraSearchUrl(state.selectedSong.title);
+
+    const { error } = await window.supabaseClient
+      .from("songs")
+      .update({ cifra_url: url })
+      .eq("id", state.selectedSong.id);
+
+    if (error) {
+      console.error(error);
+      showToast("Erro ao salvar link da cifra.");
+      return;
+    }
+
+    el.cifraUrlField.value = url;
+    showToast("✓ Link da cifra salvo!", "success");
   }
 
   // ===================== NAVEGAÇÃO =====================
@@ -233,9 +273,12 @@
       return { id: ex?.id || null, member_name: name, key: ex?.key || "" };
     });
 
+    // ✅ ALTERAÇÃO: agora traz lyrics e cifra_url
     const { data: songData } = await window.supabaseClient
-      .from("songs").select("lyrics").eq("id", songId).single();
+      .from("songs").select("lyrics, cifra_url").eq("id", songId).single();
+
     el.lyricsField.value = songData?.lyrics || "";
+    if (el.cifraUrlField) el.cifraUrlField.value = songData?.cifra_url || "";
 
     el.detailTitle.textContent = state.selectedSong.title;
     switchDetailTab("keys");
@@ -531,6 +574,10 @@
     el.saveLyrics.addEventListener("click",    saveLyrics);
     el.deleteSongBtn.addEventListener("click", deleteSong);
     el.clearSetlistBtn.addEventListener("click", clearSetlist);
+
+    // ✅ NOVO: eventos cifra
+    if (el.openCifraBtn) el.openCifraBtn.addEventListener("click", openCifra);
+    if (el.saveCifraBtn) el.saveCifraBtn.addEventListener("click", saveCifraUrl);
 
     document.querySelectorAll("[data-close]").forEach(btn => {
       btn.addEventListener("click", () => closeModal(document.getElementById(btn.dataset.close)));
