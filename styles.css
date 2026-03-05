@@ -148,7 +148,8 @@ body::after {
    HEADER
    ============================================= */
 .app-header {
-  margin-top: 22px;
+  margin-top: 0;
+  margin-bottom: 4px;
   padding: 16px;
 }
 
@@ -1076,7 +1077,7 @@ h1 {
 
 /* 1) Header mais alinhado e “premium” */
 .app-header {
-  padding: 18px 16px;
+  padding: 4px 16px 16px;
 }
 .brand-wrap {
   padding: 10px 12px;
