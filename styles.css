@@ -104,6 +104,8 @@ body::after {
   width: min(980px, 92vw);
   margin-inline: auto;
   padding-top: 10px;
+  background: rgba(243, 239, 230, 0.92);
+  backdrop-filter: blur(12px);
 }
 
 .nav-btn {
@@ -545,10 +547,14 @@ h1 {
   inset: 0;
   z-index: 50;
   display: grid;
-  place-items: center;
+  place-items: start center;
   padding: 14px;
+  padding-top: max(14px, env(safe-area-inset-top, 14px));
   background: rgba(25, 20, 46, 0.45);
-  overflow: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  align-content: center;
 }
 
 .hidden { display: none !important; }
@@ -578,11 +584,10 @@ h1 {
   box-shadow: var(--shadow-strong);
   padding: 20px;
   padding-top: 22px;
-  padding-bottom: calc(var(--dock-h) + var(--dock-gap) + env(safe-area-inset-bottom, 0px) + 24px);
-  max-height: 92vh;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
+  max-height: none;
+  overflow-y: visible;
+  margin: auto;
 }
 
 .modal-content.large { width: min(740px, 96vw); }
@@ -598,8 +603,11 @@ h1 {
 .modal-content .input-text,
 .modal-content .input-textarea {
   margin-top: 8px;
-  height: 48px;
   border-radius: 14px;
+}
+
+.modal-content .input-text {
+  height: 48px;
 }
 
 .modal-content .input-label { margin-bottom: 6px; }
@@ -860,7 +868,9 @@ h1 {
   transition: transform 0.25s ease;
   z-index: 10000;
   box-shadow: 0 18px 40px rgba(0,0,0,0.18);
-  white-space: nowrap;
+  white-space: normal;
+  max-width: min(340px, 88vw);
+  text-align: center;
 }
 
 .toast.show { transform: translateX(-50%) translateY(0); }
@@ -970,8 +980,36 @@ h1 {
 .setlist-remove-btn:active { transform: scale(0.92); }
 
 /* =============================================
-   RESPONSIVE
+   CIFRA ROW
    ============================================= */
+.cifra-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.cifra-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+  align-items: flex-end;
+}
+
+@media (max-width: 480px) {
+  .cifra-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .cifra-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+  .cifra-actions .btn {
+    flex: 1;
+  }
+}
 @media (min-width: 760px) {
   .key-grid { grid-template-columns: 1fr 1fr; }
 }
@@ -980,6 +1018,27 @@ h1 {
   .key-field label { font-size: 0.82rem; }
   .key-nav-btn { width: 40px; height: 40px; }
   .key-display { min-width: 46px; height: 40px; line-height: 40px; }
+
+  /* botões de ação no modal em telas pequenas */
+  .detail-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .detail-actions .btn {
+    width: 100%;
+  }
+
+  /* botões de adicionar/importar em telas pequenas */
+  .action-row {
+    flex-direction: column;
+  }
+  .action-row .btn {
+    width: 100%;
+  }
+
+  /* header menor */
+  h1 { font-size: 1.1rem; }
+  .app-header p { font-size: 0.85rem; }
 }
 /* ===== MINI UPGRADE SEGURO (cole no FINAL) ===== */
 
@@ -1075,4 +1134,3 @@ h1 {
 .toast {
   border: 1px solid rgba(255,255,255,0.12);
 }
-
