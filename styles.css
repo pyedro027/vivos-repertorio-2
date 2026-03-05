@@ -208,6 +208,7 @@ h1 {
   padding-block: 18px 40px;
   display: grid;
   gap: 16px;
+  min-height: 60vh;
 }
 
 /* =============================================
