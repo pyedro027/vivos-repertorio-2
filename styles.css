@@ -43,8 +43,11 @@ body {
     radial-gradient(circle at 50% 78%, rgba(255, 214, 165, 0.22), transparent 50%),
     linear-gradient(140deg, var(--bg), var(--bg-2));
   overflow-x: hidden;
+  overflow-y: auto;
   position: relative;
   padding-top: var(--sticky-h);
+  width: 100%;
+  max-width: 100vw;
 }
 
 body::after {
@@ -82,6 +85,7 @@ body::after {
   backdrop-filter: blur(12px);
   border-bottom: 1px solid rgba(47, 122, 95, 0.12);
   box-shadow: 0 4px 20px rgba(47, 72, 58, 0.08);
+  box-sizing: border-box;
 }
 
 .sticky-search .input-text {
@@ -101,7 +105,8 @@ body::after {
   top: var(--sticky-h);
   z-index: 39;
   display: flex;
-  width: min(980px, 92vw);
+  width: 100%;
+  max-width: 980px;
   margin-inline: auto;
   padding-top: 10px;
   background: rgba(243, 239, 230, 0.92);
@@ -138,10 +143,13 @@ body::after {
    ============================================= */
 .app-header,
 .app-main {
-  width: min(980px, 92vw);
+  width: 100%;
+  max-width: 980px;
   margin-inline: auto;
+  padding-inline: 16px;
   position: relative;
   z-index: 1;
+  box-sizing: border-box;
 }
 
 /* =============================================
