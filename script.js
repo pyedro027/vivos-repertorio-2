@@ -10,56 +10,46 @@
     selectedKeys: [],
     keysCache: {},
     detailTab: "keys",
-    setlist: [],
     lastFocusEl: null
   };
 
   const el = {
-    searchInput:     document.getElementById("searchInput"),
-    songsList:       document.getElementById("songsList"),
-    songCount:       document.getElementById("songCount"),
-    emptyState:      document.getElementById("emptyState"),
-    toast:           document.getElementById("toast"),
-    addSongBtn:      document.getElementById("addSongBtn"),
-    bulkImportBtn:   document.getElementById("bulkImportBtn"),
-    songModal:       document.getElementById("songModal"),
-    importModal:     document.getElementById("importModal"),
-    detailModal:     document.getElementById("detailModal"),
-    confirmModal:    document.getElementById("confirmModal"),
-    confirmMessage:  document.getElementById("confirmMessage"),
-    confirmYes:      document.getElementById("confirmYes"),
-    confirmNo:       document.getElementById("confirmNo"),
-    newSongTitle:    document.getElementById("newSongTitle"),
-    confirmAddSong:  document.getElementById("confirmAddSong"),
-    bulkText:        document.getElementById("bulkText"),
-    stripNumbers:    document.getElementById("stripNumbers"),
-    confirmImport:   document.getElementById("confirmImport"),
-    importSummary:   document.getElementById("importSummary"),
-    detailTitle:     document.getElementById("detailTitle"),
-    keyFields:       document.getElementById("keyFields"),
-    lyricsField:     document.getElementById("lyricsField"),
-    saveAllKeys:     document.getElementById("saveAllKeys"),
-    saveLyrics:      document.getElementById("saveLyrics"),
-    deleteSongBtn:   document.getElementById("deleteSongBtn"),
-    tabKeys:         document.getElementById("tabKeys"),
-    tabLyrics:       document.getElementById("tabLyrics"),
-    paneKeys:        document.getElementById("paneKeys"),
-    paneLyrics:      document.getElementById("paneLyrics"),
-    brandLogo:       document.getElementById("brandLogo"),
-    brandFallback:   document.getElementById("brandFallback"),
-    navRepertorio:   document.getElementById("navRepertorio"),
-    navSetlist:      document.getElementById("navSetlist"),
-    pageRepertorio:  document.getElementById("pageRepertorio"),
-    pageSetlist:     document.getElementById("pageSetlist"),
-    setlistEl:       document.getElementById("setlistEl"),
-    setlistEmpty:    document.getElementById("setlistEmpty"),
-    clearSetlistBtn: document.getElementById("clearSetlistBtn"),
-    setlistCount:    document.getElementById("setlistCount"),
-
-    // ✅ NOVO: Cifra
-    cifraUrlField:   document.getElementById("cifraUrlField"),
-    openCifraBtn:    document.getElementById("openCifraBtn"),
-    saveCifraBtn:    document.getElementById("saveCifraBtn"),
+    searchInput:    document.getElementById("searchInput"),
+    songsList:      document.getElementById("songsList"),
+    songCount:      document.getElementById("songCount"),
+    emptyState:     document.getElementById("emptyState"),
+    toast:          document.getElementById("toast"),
+    addSongBtn:     document.getElementById("addSongBtn"),
+    bulkImportBtn:  document.getElementById("bulkImportBtn"),
+    songModal:      document.getElementById("songModal"),
+    importModal:    document.getElementById("importModal"),
+    detailModal:    document.getElementById("detailModal"),
+    confirmModal:   document.getElementById("confirmModal"),
+    confirmMessage: document.getElementById("confirmMessage"),
+    confirmYes:     document.getElementById("confirmYes"),
+    confirmNo:      document.getElementById("confirmNo"),
+    newSongTitle:   document.getElementById("newSongTitle"),
+    confirmAddSong: document.getElementById("confirmAddSong"),
+    bulkText:       document.getElementById("bulkText"),
+    stripNumbers:   document.getElementById("stripNumbers"),
+    confirmImport:  document.getElementById("confirmImport"),
+    importSummary:  document.getElementById("importSummary"),
+    detailTitle:    document.getElementById("detailTitle"),
+    keyFields:      document.getElementById("keyFields"),
+    lyricsField:    document.getElementById("lyricsField"),
+    saveAllKeys:    document.getElementById("saveAllKeys"),
+    saveLyrics:     document.getElementById("saveLyrics"),
+    deleteSongBtn:  document.getElementById("deleteSongBtn"),
+    tabKeys:        document.getElementById("tabKeys"),
+    tabLyrics:      document.getElementById("tabLyrics"),
+    paneKeys:       document.getElementById("paneKeys"),
+    paneLyrics:     document.getElementById("paneLyrics"),
+    brandLogo:      document.getElementById("brandLogo"),
+    brandFallback:  document.getElementById("brandFallback"),
+    navRepertorio:  document.getElementById("navRepertorio"),
+    cifraUrlField:  document.getElementById("cifraUrlField"),
+    openCifraBtn:   document.getElementById("openCifraBtn"),
+    saveCifraBtn:   document.getElementById("saveCifraBtn"),
   };
 
   // ===================== UTILS =====================
@@ -114,50 +104,28 @@
     });
   }
 
-  // ✅ NOVO: gera link padrão de busca no Cifra Club
   function getDefaultCifraSearchUrl(title) {
     const q = encodeURIComponent(title || "");
-    return `https://www.cifraclub.com.br/?q=${q}`;
+    return `https://www.bananacifras.com/search?q=${q}`;
   }
 
-  // ✅ NOVO: abrir cifra
   function openCifra() {
     if (!state.selectedSong) return;
     const url = (el.cifraUrlField?.value || "").trim() || getDefaultCifraSearchUrl(state.selectedSong.title);
     window.open(url, "_blank", "noopener,noreferrer");
   }
 
-  // ✅ NOVO: salvar cifra no Supabase
   async function saveCifraUrl() {
     if (!state.selectedSong) return;
-
     const raw = (el.cifraUrlField?.value || "").trim();
     const url = raw || getDefaultCifraSearchUrl(state.selectedSong.title);
-
     const { error } = await window.supabaseClient
       .from("songs")
       .update({ cifra_url: url })
       .eq("id", state.selectedSong.id);
-
-    if (error) {
-      console.error(error);
-      showToast("Erro ao salvar link da cifra.");
-      return;
-    }
-
+    if (error) { console.error(error); showToast("Erro ao salvar link da cifra."); return; }
     el.cifraUrlField.value = url;
     showToast("✓ Link da cifra salvo!", "success");
-  }
-
-  // ===================== NAVEGAÇÃO =====================
-
-  function showPage(page) {
-    const isSetlist = page === "setlist";
-    el.pageRepertorio.classList.toggle("hidden", isSetlist);
-    el.pageSetlist.classList.toggle("hidden", !isSetlist);
-    el.navRepertorio.classList.toggle("nav-active", !isSetlist);
-    el.navSetlist.classList.toggle("nav-active", isSetlist);
-    if (isSetlist) renderSetlist();
   }
 
   // ===================== REPERTÓRIO =====================
@@ -179,18 +147,7 @@
       titleEl.className = "song-title";
       titleEl.textContent = song.title;
 
-      const inSetlist = state.setlist.some(s => s.song_id === song.id);
-      const addBtn = document.createElement("button");
-      addBtn.type = "button";
-      addBtn.className = "btn-add-setlist" + (inSetlist ? " in-setlist" : "");
-      addBtn.innerHTML = inSetlist ? "✓" : "+";
-      addBtn.title = inSetlist ? "Já está no setlist" : "Adicionar ao setlist";
-      addBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        if (!inSetlist) addToSetlist(song);
-      });
-
-      row.append(titleEl, addBtn);
+      row.append(titleEl);
 
       const keysRow = document.createElement("span");
       keysRow.className = "song-keys-preview";
@@ -273,7 +230,6 @@
       return { id: ex?.id || null, member_name: name, key: ex?.key || "" };
     });
 
-    // ✅ ALTERAÇÃO: agora traz lyrics e cifra_url
     const { data: songData } = await window.supabaseClient
       .from("songs").select("lyrics, cifra_url").eq("id", songId).single();
 
@@ -393,132 +349,6 @@
     showToast("Música excluída.");
   }
 
-  // ===================== SETLIST =====================
-
-  async function loadSetlist() {
-    const { data, error } = await window.supabaseClient
-      .from("setlist")
-      .select("id, song_id, position, songs(title)")
-      .order("position", { ascending: true });
-    if (error) { console.error(error); return; }
-    state.setlist = (data || []).map(row => ({
-      id: row.id,
-      song_id: row.song_id,
-      position: row.position,
-      title: row.songs?.title || "?"
-    }));
-  }
-
-  async function addToSetlist(song) {
-    const maxPos = state.setlist.length > 0
-      ? Math.max(...state.setlist.map(s => s.position)) : 0;
-    const { data, error } = await window.supabaseClient
-      .from("setlist").insert({ song_id: song.id, position: maxPos + 1 }).select().single();
-    if (error) { console.error(error); showToast("Erro ao adicionar ao setlist."); return; }
-    state.setlist.push({ id: data.id, song_id: song.id, position: data.position, title: song.title });
-    renderSongs();
-    showToast(`✓ "${song.title}" adicionada!`, "success");
-  }
-
-  async function removeFromSetlist(setlistId) {
-    const { error } = await window.supabaseClient
-      .from("setlist").delete().eq("id", setlistId);
-    if (error) { console.error(error); showToast("Erro ao remover."); return; }
-    state.setlist = state.setlist.filter(s => s.id !== setlistId);
-    renderSongs();
-    renderSetlist();
-    showToast("Removido do setlist.");
-  }
-
-  async function moveSetlistItem(setlistId, direction) {
-    const idx = state.setlist.findIndex(s => s.id === setlistId);
-    const swapIdx = idx + direction;
-    if (swapIdx < 0 || swapIdx >= state.setlist.length) return;
-    const a = state.setlist[idx];
-    const b = state.setlist[swapIdx];
-    [a.position, b.position] = [b.position, a.position];
-    state.setlist.sort((x, y) => x.position - y.position);
-    await window.supabaseClient.from("setlist").upsert([
-      { id: a.id, song_id: a.song_id, position: a.position },
-      { id: b.id, song_id: b.song_id, position: b.position }
-    ]);
-    renderSetlist();
-  }
-
-  async function clearSetlist() {
-    const ok = await showConfirm("Limpar o setlist do culto?");
-    if (!ok) return;
-    const { error } = await window.supabaseClient
-      .from("setlist").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-    if (error) { console.error(error); showToast("Erro ao limpar setlist."); return; }
-    state.setlist = [];
-    renderSongs();
-    renderSetlist();
-    showToast("Setlist limpo.");
-  }
-
-  function renderSetlist() {
-    el.setlistEl.innerHTML = "";
-    el.setlistCount.textContent = String(state.setlist.length);
-    el.setlistEmpty.style.display = state.setlist.length > 0 ? "none" : "block";
-    el.clearSetlistBtn.style.display = state.setlist.length > 0 ? "inline-flex" : "none";
-
-    state.setlist.forEach((item, idx) => {
-      const keys = state.keysCache[item.song_id] || [];
-      const li = document.createElement("li");
-      li.className = "setlist-item";
-
-      const num = document.createElement("span");
-      num.className = "setlist-num";
-      num.textContent = idx + 1;
-
-      const info = document.createElement("div");
-      info.className = "setlist-info";
-      info.style.cursor = "pointer";
-
-      const title = document.createElement("span");
-      title.className = "setlist-title";
-      title.textContent = item.title;
-
-      const keysRow = document.createElement("span");
-      keysRow.className = "song-keys-preview";
-      keys.forEach(({ member_name, key }) => {
-        if (!key) return;
-        const chip = document.createElement("span");
-        chip.className = "key-chip";
-        chip.textContent = `${member_name.split(" ")[0]}: ${key}`;
-        keysRow.appendChild(chip);
-      });
-
-      info.append(title, keysRow);
-      info.addEventListener("click", () => openDetail(item.song_id));
-
-      const controls = document.createElement("div");
-      controls.className = "setlist-controls";
-
-      const upBtn = document.createElement("button");
-      upBtn.className = "setlist-move-btn";
-      upBtn.innerHTML = "↑";
-      upBtn.disabled = idx === 0;
-      upBtn.addEventListener("click", () => moveSetlistItem(item.id, -1));
-
-      const downBtn = document.createElement("button");
-      downBtn.className = "setlist-move-btn";
-      downBtn.innerHTML = "↓";
-      downBtn.disabled = idx === state.setlist.length - 1;
-      downBtn.addEventListener("click", () => moveSetlistItem(item.id, 1));
-
-      const removeBtn = document.createElement("button");
-      removeBtn.className = "setlist-remove-btn";
-      removeBtn.innerHTML = "×";
-      removeBtn.addEventListener("click", () => removeFromSetlist(item.id));
-
-      controls.append(upBtn, downBtn, removeBtn);
-      li.append(num, info, controls);
-      el.setlistEl.appendChild(li);
-    });
-  }
-
   // ===================== IMPORTAÇÃO =====================
 
   async function bulkImport() {
@@ -561,11 +391,9 @@
       el.brandFallback.style.display = "grid";
     });
     el.searchInput.addEventListener("input", debounce(e => applyFilter(e.target.value), 300));
-    el.navRepertorio.addEventListener("click", () => showPage("repertorio"));
-    el.navSetlist.addEventListener("click",    () => showPage("setlist"));
     el.addSongBtn.addEventListener("click",    () => openModal(el.songModal, el.newSongTitle));
     el.bulkImportBtn.addEventListener("click", () => openModal(el.importModal, el.bulkText));
-    el.confirmAddSong.addEventListener("click",() => addSong(el.newSongTitle.value));
+    el.confirmAddSong.addEventListener("click", () => addSong(el.newSongTitle.value));
     el.newSongTitle.addEventListener("keydown", e => { if (e.key === "Enter") addSong(el.newSongTitle.value); });
     el.confirmImport.addEventListener("click", bulkImport);
     el.tabKeys.addEventListener("click",       () => switchDetailTab("keys"));
@@ -573,9 +401,7 @@
     el.saveAllKeys.addEventListener("click",   saveAllKeys);
     el.saveLyrics.addEventListener("click",    saveLyrics);
     el.deleteSongBtn.addEventListener("click", deleteSong);
-    el.clearSetlistBtn.addEventListener("click", clearSetlist);
 
-    // ✅ NOVO: eventos cifra
     if (el.openCifraBtn) el.openCifraBtn.addEventListener("click", openCifra);
     if (el.saveCifraBtn) el.saveCifraBtn.addEventListener("click", saveCifraUrl);
 
@@ -596,7 +422,6 @@
   async function init() {
     bindEvents();
     await loadSongs();
-    await loadSetlist();
   }
 
   init();
