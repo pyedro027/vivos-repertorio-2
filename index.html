@@ -18,7 +18,6 @@
 
   <nav class="main-nav">
     <button id="navRepertorio" class="nav-btn nav-active">🎵 Repertório</button>
-    <button id="navSetlist"    class="nav-btn">📋 Setlist do Culto</button>
   </nav>
 
   <main id="pageRepertorio" class="app-main">
@@ -45,21 +44,6 @@
       </div>
       <ul id="songsList" class="songs-list"></ul>
       <p id="emptyState" class="empty-state">Nenhuma música encontrada.</p>
-    </section>
-  </main>
-
-  <main id="pageSetlist" class="app-main hidden">
-    <section class="list-wrap">
-      <div class="list-header">
-        <h2>Setlist do Culto</h2>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <span id="setlistCount" class="pill">0</span>
-          <button id="clearSetlistBtn" class="btn btn-danger" style="display:none;padding:6px 12px;font-size:0.82rem;">🗑 Limpar</button>
-        </div>
-      </div>
-      <p class="hint">Adicione músicas pelo Repertório. Toque na música para ver tons e letra.</p>
-      <ul id="setlistEl" class="setlist-list"></ul>
-      <p id="setlistEmpty" class="empty-state">Nenhuma música no setlist ainda.</p>
     </section>
   </main>
 
@@ -115,7 +99,7 @@
         <div class="cifra-row">
           <div style="flex:1; min-width:0;">
             <label class="input-label">Link da cifra</label>
-            <input id="cifraUrlField" class="input-text" type="url" placeholder="Cole o link da cifra (Cifra Club)..." />
+            <input id="cifraUrlField" class="input-text" type="url" placeholder="Cole o link da cifra (Bananacifras)..." />
           </div>
 
           <div class="cifra-actions">
