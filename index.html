@@ -1,100 +1,151 @@
-Os Encontros que marcam um testemunho
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Vivos com Cristo — Repertório</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  
+  <div class="top-bar">
+    <div class="search-wrapper">
+      <span class="material-symbols-outlined search-icon">search</span>
+      <input id="searchInput" class="input-text search-input" type="search" placeholder="Pesquisar por título ou tom..." autocomplete="off" />
+    </div>
+    <div class="action-row">
+      <button id="addSongBtn" class="btn btn-primary"><span class="material-symbols-outlined">add</span> Adicionar</button>
+      <button id="bulkImportBtn" class="btn btn-soft"><span class="material-symbols-outlined">upload</span> Importar</button>
+    </div>
+  </div>
 
-Quantas vezes não fomos percebidos na vida. Talvez porque nada que chamasse muita atenção das pessoas em nós. 
-Me perguntaram outro dia se eu conhecia uma tal pessoa “famosa”, que de fato não conhecia. E a pessoa ficou espantada porque não conhecia tal pessoa. Então falei: deveria conhecê-la? Por acaso ela me conhece? E em tom de brincadeira ele me falou, mas você veio de Muqui…
-Foi então que tomei a consciência de quanto a falta de percepção da nossa presença afetou a nossa vida de uma maneira negativa. Quanto mais à margem da sociedade, mais imperceptível.
-Muitas das vezes carregamos essa “ausência de presença”, devido muitas das vezes que não fomos notados na vida. Daí vem a expressão “Zé Ninguém”.
+  <main id="pageRepertorio" class="app-main">
+    <header class="app-header">
+      <img src="assets/logo.png" alt="Logo" class="header-logo" onerror="this.style.display='none'">
+      <div>
+        <h1>Repertório</h1>
+        <p>Todas as Músicas</p>
+      </div>
+    </header>
+    
+    <section class="list-wrap">
+      <ul id="songsList" class="songs-list"></ul>
+      <p id="emptyState" class="empty-state">Nenhuma música encontrada.</p>
+    </section>
+  </main>
 
-O ser humano já nasce com essa necessidade de chamar a atenção das pessoas. Quando criança, procuram fazer barulho para chamar a atenção dos pais, adolescentes, mudam de identidade de acordo com o padrão do grupo de amigos para serem aceitos e notados…
+  <main id="pageCulto" class="app-main hidden">
+    <header class="app-header">
+      <img src="assets/logo.png" alt="Logo" class="header-logo" onerror="this.style.display='none'">
+      <div>
+        <h1>Culto</h1>
+        <p>Setlist do Louvor</p>
+      </div>
+    </header>
 
-Veremos que não precisamos nos tornar alguém “Importante” ou “Ser Alguém na Vida” na visão humana para sermos notados e reconhecidos uma vez que fomos encontrados pela pessoa mais importante que existe, Jesus. Pois, agora aquela pessoa que não era notada, foi crucificada juntamente com Cristo, e a presença reconhecida por Deus passou a habitar em nós.a
+    <section class="controls" style="padding: 0 0 16px 0;">
+      <button id="clearSetlistBtn" class="btn btn-danger full">
+        <span class="material-symbols-outlined">delete_sweep</span> Limpar Lista do Culto
+      </button>
+    </section>
 
-“No dia imediato, resolveu Jesus partir para a Galileia e encontrou a Filipe, a quem disse: Segue-me. Ora, Filipe era de Betsaida, cidade de André e de Pedro. Filipe encontrou a Natanael e disse-lhe: Achamos aquele de quem Moisés escreveu na lei, e a quem se referiram os profetas: Jesus, o Nazareno, filho de José. Perguntou-lhe Natanael: De Nazaré pode sair alguma coisa boa? Respondeu-lhe Filipe: Vem e vê. Jesus viu Natanael aproximar-se e disse a seu respeito: Eis um verdadeiro israelita, em quem não há dolo! Perguntou-lhe Natanael: Donde me conheces? Respondeu-lhe Jesus: Antes de Filipe te chamar, eu te vi, quando estavas debaixo da figueira. Então, exclamou Natanael: Mestre, tu és o Filho de Deus, tu és o Rei de Israel! Ao que Jesus lhe respondeu: Porque te disse que te vi debaixo da figueira, crês? Pois maiores coisas do que estas verás.”
-‭‭João‬ ‭1‬:‭43‬-‭50‬ ‭ARA‬‬
+    <section class="list-wrap">
+      <ul id="cultoSongsList" class="songs-list"></ul>
+      <p id="cultoEmptyState" class="empty-state">Nenhuma música no setlist ainda. Adicione clicando na estrela!</p>
+    </section>
+  </main>
 
-Vamos analisar aqui realidades importantes dessas três pessoas nesses versos: Filipe, Jesus e Natanael.
+  <nav class="bottom-nav">
+    <button id="navRepertorio" class="nav-btn nav-active">
+      <span class="material-symbols-outlined">library_music</span>
+      <span>Repertório</span>
+    </button>
+    <button id="navCulto" class="nav-btn">
+      <span class="material-symbols-outlined">local_fire_department</span>
+      <span>Culto</span>
+    </button>
+  </nav>
 
-Filipe é encontrado por Jesus.
+  <div id="toast" class="toast"></div>
 
-Somente é encontrado a quem se procura, e somente se procura aquilo que se tem valor. Jesus partiu para Galiléia e encontrou a Filipe. O propósito era encontrar a ele. Ser encontrado por Jesus traz consigo um peso de importância na vida de quem nunca imaginava ser notado por Deus.
+  <div id="songModal" class="modal hidden">
+    <div class="modal-content">
+      <button class="icon-close" data-close="songModal"><span class="material-symbols-outlined">close</span></button>
+      <h3>Nova música</h3>
+      <label class="input-label">Título</label>
+      <input id="newSongTitle" class="input-text" type="text" placeholder="Ex: Oceans..." />
+      <button id="confirmAddSong" class="btn btn-primary full">Salvar</button>
+    </div>
+  </div>
 
-Filipe testemunha sobre Jesus com Natanael.
+  <div id="importModal" class="modal hidden">
+    <div class="modal-content">
+      <button class="icon-close" data-close="importModal"><span class="material-symbols-outlined">close</span></button>
+      <h3>Importar lista</h3>
+      <textarea id="bulkText" class="input-textarea" rows="8" placeholder="Cole uma música por linha..."></textarea>
+      <label class="checkbox-wrap">
+        <input id="stripNumbers" type="checkbox" /> Remover numeração ("1. Música")
+      </label>
+      <button id="confirmImport" class="btn btn-primary full">Importar</button>
+      <pre id="importSummary" class="import-summary hidden"></pre>
+    </div>
+  </div>
 
-O texto diz que Filipe encontrou a Natanael. Quem foi encontrado por Jesus, encontrará a outros para testemunhar sobre Ele. Fomos chamados para sermos testemunhas de Jesus.
+  <div id="detailModal" class="modal hidden">
+    <div class="modal-content large">
+      <button class="icon-close" data-close="detailModal"><span class="material-symbols-outlined">close</span></button>
+      <h3 id="detailTitle">Detalhes</h3>
+      <div class="tabs">
+        <button id="tabKeys" class="tab-btn tab-active">Tons</button>
+        <button id="tabLyrics" class="tab-btn">Letra & Cifra</button>
+      </div>
+      
+      <div id="paneKeys">
+        <div id="keyFields" class="key-grid"></div>
+        <div class="detail-actions">
+          <button id="saveAllKeys" class="btn btn-primary full">Salvar Tons</button>
+          <button id="deleteSongBtn" class="btn btn-danger icon-only" title="Excluir"><span class="material-symbols-outlined">delete</span></button>
+        </div>
+      </div>
+      
+      <div id="paneLyrics" class="hidden">
+        <textarea id="lyricsField" class="input-textarea lyrics-textarea" placeholder="Cole a letra..."></textarea>
+        <div class="cifra-row">
+          <div style="flex:1;">
+            <input id="cifraUrlField" class="input-text" type="url" placeholder="Link da cifra..." />
+          </div>
+          <div class="cifra-actions">
+            <button id="openCifraBtn" class="btn btn-soft"><span class="material-symbols-outlined">open_in_new</span></button>
+            <button id="saveCifraBtn" class="btn btn-primary">Salvar Link</button>
+          </div>
+        </div>
+        <button id="saveLyrics" class="btn btn-primary full" style="margin-top:12px;">Salvar Letra</button>
+      </div>
+    </div>
+  </div>
 
-“mas recebereis poder, ao descer sobre vós o Espírito Santo, e sereis minhas testemunhas tanto em Jerusalém como em toda a Judeia e Samaria e até aos confins da terra.”
-‭‭Atos‬ ‭1‬:‭8‬ ‭ARA‬‬
+  <div id="confirmModal" class="modal hidden">
+    <div class="modal-content confirm-modal-content">
+      <p id="confirmMessage" class="confirm-message">Tem certeza?</p>
+      <div class="confirm-actions">
+        <button id="confirmNo" class="btn btn-soft">Cancelar</button>
+        <button id="confirmYes" class="btn btn-danger">Confirmar</button>
+      </div>
+    </div>
+  </div>
 
-“E, caindo todos nós por terra, ouvi uma voz que me falava em língua hebraica: Saulo, Saulo, por que me persegues? Dura coisa é recalcitrares contra os aguilhões. Então, eu perguntei: Quem és tu, Senhor? Ao que o Senhor respondeu: Eu sou Jesus, a quem tu persegues. Mas levanta-te e firma-te sobre teus pés, porque por isto te apareci (olhar para), para te constituir ministro e testemunha, tanto das coisas em que me viste como daquelas pelas quais te aparecerei ainda, livrando-te do povo e dos gentios, para os quais eu te envio, para lhes abrires os olhos e os converteres das trevas para a luz e da potestade de Satanás para Deus, a fim de que recebam eles remissão de pecados e herança entre os que são santificados pela fé em mim.”
-‭‭Atos‬ ‭26‬:‭14‬-‭18‬ ‭ARA‬‬
-
-Cada encontro que temos com Jesus, ou melhor, cada vez que somos achados por Ele, um testemunho é gerado em nós. E cada testemunho gera um encargo de testemunhar a outros, pois quem foi encontrado encontra.
-
-Filipe disse “Achamos aquele de quem Moisés escreveu na lei, e a quem se referiram os profetas: Jesus, o Nazareno, filho de José”.
-
-Às vezes parece que fomos nós que buscamos e encontramos, mas na verdade, é Jesus quem nos encontra.
-
-“Não fostes vós que me escolhestes a mim; pelo contrário, eu vos escolhi a vós outros e vos designei para que vades e deis fruto, e o vosso fruto permaneça; a fim de que tudo quanto pedirdes ao Pai em meu nome, ele vo-lo conceda.”
-‭‭João‬ ‭15‬:‭16‬ ‭ARA‬‬
-
-O propósito de testemunhar, que é dar o fruto, nesse contexto, surge de alguém que foi escolhido e encontrado.
-
-O encontro com a mulher samaritana
-
-“E era-lhe necessário atravessar a província de Samaria. Chegou, pois, a uma cidade samaritana, chamada Sicar, perto das terras que Jacó dera a seu filho José. Estava ali a fonte de Jacó. Cansado da viagem, assentara-se Jesus junto à fonte, por volta da hora sexta. Nisto, veio uma mulher samaritana tirar água. Disse-lhe Jesus: Dá-me de beber.”
-‭‭João‬ ‭4‬:‭4‬-‭7‬ ‭ARA‬‬
-
-Era necessário para Jesus ir para Samaria, porque essa necessidade foi motivada por esse encontro. Essa mulher indo pegar água ao meio dia, denota as feridas que carregava por causa da fama que possuía, pois a mesma já tivera 5 maridos, e o que ela estava vivendo naquele momento não era seu marido. Aqui já nem é o caso de alguém que não era notado, mas de alguém que carregava uma má fama. Certamente essa mulher vivia nesse vazio causada pelo desvalor que possuía.
-Porém ela foi achada!!! Uma mulher desprezada no lugar em que vivia, foi encontrada pela pessoa mais importante que já existiu.
-
-O testemunho da mulher samaritana
-
-“Quanto à mulher, deixou o seu cântaro, foi à cidade e disse àqueles homens: Vinde comigo e vede um homem que me disse tudo quanto tenho feito. Será este, porventura, o Cristo?! Saíram, pois, da cidade e vieram ter com ele.”
-‭‭João‬ ‭4‬:‭28‬-‭30‬ ‭ARA‬‬
-
-VEM e VEJA! Essas são as mesmas palavras que Filipe disse a Natanael. Nosso testemunho a respeito de Jesus será sempre, venha e veja.
-
-Qual foi a mensagem daquela mulher? “Vinde comigo e vede um homem que me disse tudo quanto tenho feito. “
-Interessante que Jesus falou sobre água viva, adoração em espírito, porém o que marcou a vida daquela mulher foi “Ele me disse tudo quanto tenho feito”, ou seja, Ele me conhece, Ele conhece a minha dor, Ele conhece a minha história, Ele sabe tudo os meus erros, mas mesmo assim não me ignorou.
-A marca de um testemunho é ELE ME CONHECE!
-
-O encontro de Jesus com Natanael, após testemunho de Filipe
-
-“Filipe encontrou a Natanael e disse-lhe: Achamos aquele de quem Moisés escreveu na lei, e a quem se referiram os profetas: Jesus, o Nazareno, filho de José. Perguntou-lhe Natanael: De Nazaré pode sair alguma coisa boa? Respondeu-lhe Filipe: Vem e vê. Jesus viu Natanael aproximar-se e disse a seu respeito: Eis um verdadeiro israelita, em quem não há dolo! Perguntou-lhe Natanael: Donde me conheces? Respondeu-lhe Jesus: Antes de Filipe te chamar, eu te vi, quando estavas debaixo da figueira. Então, exclamou Natanael: Mestre, tu és o Filho de Deus, tu és o Rei de Israel! Ao que Jesus lhe respondeu: Porque te disse que te vi debaixo da figueira, crês? Pois maiores coisas do que estas verás.”
-‭‭João‬ ‭1‬:‭45‬-‭50‬ ‭ARA‬‬
-
-A visão de Natanael quanto a importância de alguém era mundana. Ele disse “pode sair alguma coisa boa de Nazaré?”. O fato de Natanael pensar assim revela que também ele não tinha importância, pois Caná da Galileia era considerada uma pequena vila judaica, relativamente obscura e pacata na região da Galileia. O consolo de Natanael era saber que Nazaré era menor que aonde vivia.
-
-“Te vi debaixo da figueira": Natanael estava sob uma figueira antes de conhecer Jesus, o que na tradição judaica simbolizava estudar as escrituras ou meditar.
-Provavelmente Natanael estava sozinho debaixo da figueira e somente Deus poderia vê-lo. Ser conhecido e notado por Jesus trouxe uma marca de importância na vida de Natanael.
-
-Meditação da presença de Deus 
-
-“Senhor, tu me sondas e me conheces. 
-
-Para onde poderia eu escapar do teu Espírito? Para onde poderia fugir da tua presença? 
-
-Os teus olhos viram o meu embrião; todos os dias determinados para mim foram escritos no teu livro antes de qualquer um deles existir.”
-‭‭Salmos‬ ‭139‬:‭1‬, ‭7‬, ‭16‬ ‭NVI‬‬
-
-As Parábolas do Encontro 
-
-As parábolas da ovelha e dracma perdidas e do filho pródigo tem o foco em se achar o que se havia perdido. Os religiosos colocam o foco no arrependimento do pecador, porém o arrependimento do contexto está ligado a alguém que foi encontrado e recebeu o valor. 
-
-“E, indo para casa, reúne os amigos e vizinhos, dizendo-lhes: Alegrai-vos comigo, porque já achei a minha ovelha perdida.”
-‭‭Lucas‬ ‭15‬:‭6‬ ‭ARA‬‬
-
-“E, tendo-a achado, reúne as amigas e vizinhas, dizendo: Alegrai-vos comigo, porque achei a dracma que eu tinha perdido.”
-‭‭Lucas‬ ‭15‬:‭9‬ ‭ARA‬‬
-
-“porque este meu filho estava morto e reviveu, estava perdido e foi achado. E começaram a regozijar-se.”
-‭‭Lucas‬ ‭15‬:‭24‬ ‭ARA‬‬
-
-	⁃	A parábola da ovelha perdida aponta para Jesus como pastor.
-	⁃	A parábola da dracma perdida aponta para o Espírito Santo, a mulher que acende a luz.
-	⁃	A parábola do filho pródigo aponta para o Pai.
-
-A graça revela a Trindade buscando o perdido e restabelecendo o valor do homem. Isso aponta para o preço que foi pago na Cruz.
-
-“e ser achado nele, não tendo justiça própria, que procede de lei, senão a que é mediante a fé em Cristo, a justiça que procede de Deus, baseada na fé;”
-‭‭Filipenses‬ ‭3‬:‭9‬ ‭ARA
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    window.SUPABASE_URL = "https://wkjbhumyexkbuabklenj.supabase.co";
+    window.SUPABASE_ANON_KEY = "sb_publishable_vY4R-ChreoZ4IX7dNkd0Bg_psvzEx7G";
+  </script>
+  <script src="supabaseClient.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
