@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Vivos com Cristo - Repertório</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary": "#54815e",
+                        "primary-hover": "#466b4e",
+                        "background": "#F9F9F7",
+                        "surface": "#ffffff",
+                        "surface-variant": "#F2F2EF",
+                        "on-surface": "#1A1A18",
+                        "on-surface-muted": "#6B6B66",
+                        "border-subtle": "#EAEAE6",
+                        "outline": "#D1D1CB"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.5rem",
+                        "lg": "0.75rem",
+                        "xl": "1rem",
+                        "2xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                    "boxShadow": {
+                        "premium": "0 1px 2px rgba(0,0,0,0.02), 0 4px 12px rgba(0,0,0,0.03), 0 12px 24px rgba(0,0,0,0.02)",
+                        "premium-hover": "0 2px 4px rgba(0,0,0,0.02), 0 8px 24px rgba(0,0,0,0.05), 0 16px 32px rgba(0,0,0,0.03)",
+                        "inner-subtle": "inset 0 1px 2px rgba(0,0,0,0.01)"
+                    },
+                    "fontFamily": {
+                        "sans": ["Manrope", "sans-serif"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
+        .pt-safe { padding-top: env(safe-area-inset-top, 20px); }
+        body {
+            min-height: 100dvh;
+            letter-spacing: -0.01em;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .fill-icon {
+            font-variation-settings: 'FILL' 1;
+        }
+        /* Custom scrollbar for premium feel */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #E0E0DB; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-sans antialiased pb-24 md:pb-0 md:pt-20">
+<!-- Desktop Navigation -->
+<header class="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-border-subtle hidden md:block">
+<div class="flex items-center justify-between px-8 h-16 max-w-7xl mx-auto">
+<div class="flex items-center gap-10">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-[20px] fill-icon">church</span>
+</div>
+<span class="text-[17px] font-bold tracking-tight text-on-surface">Vivos com Cristo</span>
+</div>
+<nav class="flex items-center gap-1">
+<a class="text-on-surface-muted hover:text-on-surface hover:bg-surface-variant transition-all px-4 py-1.5 rounded-full text-sm font-medium" href="#">Início</a>
+<a class="text-primary bg-primary/5 px-4 py-1.5 rounded-full text-sm font-semibold" href="#">Repertório</a>
+<a class="text-on-surface-muted hover:text-on-surface hover:bg-surface-variant transition-all px-4 py-1.5 rounded-full text-sm font-medium" href="#">Músicas</a>
+</nav>
+</div>
+<div class="flex items-center gap-3">
+<button class="text-on-surface-muted hover:text-on-surface p-2 rounded-full transition-colors">
+<span class="material-symbols-outlined">search</span>
+</button>
+<button class="w-8 h-8 rounded-full bg-surface-variant border border-border-subtle flex items-center justify-center overflow-hidden">
+<span class="material-symbols-outlined text-on-surface-muted">account_circle</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Mobile Header -->
+<div class="md:hidden pt-safe px-6 pt-10 pb-6">
+<div class="flex items-center justify-between">
+<h1 class="text-[32px] font-extrabold tracking-tight text-on-surface">Repertório</h1>
+<button class="w-10 h-10 rounded-full bg-surface border border-border-subtle flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+</button>
+</div>
+</div>
+<main class="max-w-7xl mx-auto px-6 md:px-8">
+<!-- Search & Actions -->
+<div class="sticky top-0 md:top-20 z-40 bg-background/90 backdrop-blur-md py-6 -mx-6 px-6 md:mx-0 md:px-0 mb-10 flex flex-col sm:flex-row gap-4 items-center">
+<div class="relative w-full sm:flex-1 group">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-muted transition-colors group-focus-within:text-primary">search</span>
+<input class="w-full bg-surface border border-border-subtle rounded-2xl py-3.5 pl-12 pr-4 text-[15px] text-on-surface shadow-premium placeholder:text-on-surface-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" placeholder="Pesquisar por título, artista ou tom..." type="text"/>
+</div>
+<div class="flex gap-3 w-full sm:w-auto">
+<button class="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-primary text-white px-6 py-3.5 rounded-2xl text-[14px] font-bold shadow-premium hover:bg-primary-hover hover:shadow-premium-hover transition-all active:scale-[0.98]">
+<span class="material-symbols-outlined text-[20px]">add</span>
+                Adicionar
+            </button>
+<button class="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-surface border border-border-subtle text-on-surface px-6 py-3.5 rounded-2xl text-[14px] font-semibold shadow-premium hover:bg-surface-variant transition-all active:scale-[0.98]">
+<span class="material-symbols-outlined text-[20px]">upload</span>
+                Importar
+            </button>
+</div>
+</div>
+<!-- Featured Section -->
+<section class="mb-14">
+<div class="flex items-center justify-between mb-6">
+<h2 class="text-xl font-bold tracking-tight text-on-surface">Em Destaque</h2>
+<button class="text-primary text-sm font-semibold hover:underline">Ver tudo</button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Featured Card 1 -->
+<div class="group bg-surface border border-border-subtle rounded-2xl p-7 shadow-premium flex flex-col justify-between min-h-[200px] relative overflow-hidden cursor-pointer hover:shadow-premium-hover transition-all border-b-4 border-b-primary/40">
+<div class="absolute -top-4 -right-4 opacity-[0.03] group-hover:scale-110 group-hover:rotate-6 transition-transform duration-500">
+<span class="material-symbols-outlined text-[140px] fill-icon">favorite</span>
+</div>
+<div>
+<div class="flex items-center gap-2 mb-4">
+<span class="bg-surface-variant text-on-surface-muted text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-md border border-border-subtle">C Major</span>
+<span class="bg-primary/10 text-primary text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-md">Louvor</span>
+</div>
+<h3 class="text-2xl font-extrabold text-on-surface leading-tight mb-1">Vim para Adorar</h3>
+<p class="text-sm text-on-surface-muted">Adoração sem Limites</p>
+</div>
+<div class="flex items-center gap-2 text-primary text-sm font-bold mt-6 group-hover:translate-x-1 transition-transform">
+<span class="material-symbols-outlined text-[20px] fill-icon">play_circle</span> 
+                    Reproduzir Agora
+                </div>
+</div>
+<!-- Featured Card 2 -->
+<div class="group bg-surface border border-border-subtle rounded-2xl p-7 shadow-premium flex flex-col justify-between min-h-[200px] relative overflow-hidden cursor-pointer hover:shadow-premium-hover transition-all border-b-4 border-b-primary/40">
+<div class="absolute -top-4 -right-4 opacity-[0.03] group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-500">
+<span class="material-symbols-outlined text-[140px] fill-icon">star</span>
+</div>
+<div>
+<div class="flex items-center gap-2 mb-4">
+<span class="bg-surface-variant text-on-surface-muted text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-md border border-border-subtle">G Major</span>
+<span class="bg-primary/10 text-primary text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-md">Adoração</span>
+</div>
+<h3 class="text-2xl font-extrabold text-on-surface leading-tight mb-1">Grande é o Senhor</h3>
+<p class="text-sm text-on-surface-muted">Comunhão</p>
+</div>
+<div class="flex items-center gap-2 text-primary text-sm font-bold mt-6 group-hover:translate-x-1 transition-transform">
+<span class="material-symbols-outlined text-[20px] fill-icon">play_circle</span> 
+                    Reproduzir Agora
+                </div>
+</div>
+<!-- Stats/Action Card -->
+<div class="bg-primary group rounded-2xl p-7 shadow-premium flex flex-col justify-center items-center text-center text-white cursor-pointer hover:bg-primary-hover transition-all relative overflow-hidden">
+<div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.2),transparent)] opacity-50"></div>
+<div class="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center mb-4 backdrop-blur-sm group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-[32px] fill-icon">library_music</span>
+</div>
+<h3 class="text-xl font-bold mb-1">Nova Playlist</h3>
+<p class="text-sm text-white/70">Organize para o próximo culto</p>
+</div>
+</div>
+</section>
+<!-- Main List Section -->
+<section class="pb-12">
+<div class="flex items-center justify-between mb-6">
+<h2 class="text-xl font-bold tracking-tight text-on-surface">Todas as Músicas</h2>
+<button class="flex items-center gap-2 text-on-surface-muted hover:text-on-surface transition-colors bg-surface border border-border-subtle px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider">
+                Filtrar <span class="material-symbols-outlined text-[18px]">tune</span>
+</button>
+</div>
+<div class="flex flex-col gap-3">
+<!-- List Item 1 -->
+<div class="group bg-surface border border-border-subtle rounded-2xl p-5 shadow-premium flex items-center justify-between cursor-pointer hover:border-primary/30 transition-all">
+<div class="flex items-center gap-5">
+<div class="w-14 h-14 bg-surface-variant border border-border-subtle rounded-xl flex items-center justify-center text-on-surface-muted text-[13px] font-extrabold tracking-tighter shadow-inner-subtle group-hover:text-primary transition-colors">
+                        Am
+                    </div>
+<div>
+<h4 class="text-[17px] font-bold text-on-surface tracking-tight leading-none mb-1.5">Ao Único</h4>
+<p class="text-sm text-on-surface-muted flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-border-subtle"></span>
+                            Aline Barros
+                        </p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-muted hover:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined">favorite</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-muted hover:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</div>
+<!-- List Item 2 -->
+<div class="group bg-surface border border-border-subtle rounded-2xl p-5 shadow-premium flex items-center justify-between cursor-pointer hover:border-primary/30 transition-all">
+<div class="flex items-center gap-5">
+<div class="w-14 h-14 bg-surface-variant border border-border-subtle rounded-xl flex items-center justify-center text-on-surface-muted text-[13px] font-extrabold tracking-tighter shadow-inner-subtle group-hover:text-primary transition-colors">
+                        D#
+                    </div>
+<div>
+<h4 class="text-[17px] font-bold text-on-surface tracking-tight leading-none mb-1.5">Rendido Estou</h4>
+<p class="text-sm text-on-surface-muted flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-border-subtle"></span>
+                            Fernandinho
+                        </p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-muted hover:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined">favorite</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-muted hover:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</div>
+<!-- List Item 3 -->
+<div class="group bg-surface border border-border-subtle rounded-2xl p-5 shadow-premium flex items-center justify-between cursor-pointer hover:border-primary/30 transition-all">
+<div class="flex items-center gap-5">
+<div class="w-14 h-14 bg-surface-variant border border-border-subtle rounded-xl flex items-center justify-center text-on-surface-muted text-[13px] font-extrabold tracking-tighter shadow-inner-subtle group-hover:text-primary transition-colors">
+                        E
+                    </div>
+<div>
+<h4 class="text-[17px] font-bold text-on-surface tracking-tight leading-none mb-1.5">Teu Amor Não Falha</h4>
+<p class="text-sm text-on-surface-muted flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-border-subtle"></span>
+                            Nívea Soares
+                        </p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-muted hover:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined">favorite</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-muted hover:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</div>
+<!-- List Item 4 -->
+<div class="group bg-surface border border-border-subtle rounded-2xl p-5 shadow-premium flex items-center justify-between cursor-pointer hover:border-primary/30 transition-all">
+<div class="flex items-center gap-5">
+<div class="w-14 h-14 bg-surface-variant border border-border-subtle rounded-xl flex items-center justify-center text-on-surface-muted text-[13px] font-extrabold tracking-tighter shadow-inner-subtle group-hover:text-primary transition-colors">
+                        F#m
+                    </div>
+<div>
+<h4 class="text-[17px] font-bold text-on-surface tracking-tight leading-none mb-1.5">Lugar Secreto</h4>
+<p class="text-sm text-on-surface-muted flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-border-subtle"></span>
+                            Gabriela Rocha
+                        </p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-muted hover:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined">favorite</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-muted hover:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation (Mobile) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-4 py-3 pb-safe bg-surface/90 backdrop-blur-xl border-t border-border-subtle shadow-[0_-8px_24px_rgba(0,0,0,0.04)] z-50">
+<button class="flex flex-col items-center justify-center text-on-surface-muted/60 py-1.5 px-4 transition-all active:scale-90">
+<span class="material-symbols-outlined text-[24px]">home</span>
+<span class="text-[10px] font-bold uppercase tracking-widest mt-1">Início</span>
+</button>
+<button class="flex flex-col items-center justify-center text-primary py-1.5 px-4 transition-all active:scale-90 relative">
+<span class="material-symbols-outlined text-[24px] fill-icon">library_music</span>
+<span class="text-[10px] font-bold uppercase tracking-widest mt-1">Repertório</span>
+<div class="absolute -top-1 w-1 h-1 bg-primary rounded-full"></div>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-muted/60 py-1.5 px-4 transition-all active:scale-90">
+<span class="material-symbols-outlined text-[24px]">queue_music</span>
+<span class="text-[10px] font-bold uppercase tracking-widest mt-1">Músicas</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-muted/60 py-1.5 px-4 transition-all active:scale-90">
+<span class="material-symbols-outlined text-[24px]">settings</span>
+<span class="text-[10px] font-bold uppercase tracking-widest mt-1">Ajustes</span>
+</button>
+</nav>
+</body></html>
