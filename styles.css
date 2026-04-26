@@ -33,7 +33,7 @@ body {
   font-family: 'Manrope', sans-serif;
   color: var(--on-surface);
   background-color: var(--bg);
-  padding-top: 130px; /* Espaço para o topo fixo */
+  padding-top: 180px; /* Ajustado para não esmagar a logo e o título */
   padding-bottom: calc(80px + env(safe-area-inset-bottom)); /* Espaço pro menu e barra do iPhone/Android */
   overflow-x: hidden; /* Impede vazar pro lado */
   width: 100vw;
@@ -129,7 +129,7 @@ body {
 .icon-only { padding: 14px; flex: 0 0 auto; }
 
 /* =============================================
-   LISTA DE MÚSICAS (Cards Corrigidos)
+   LISTA DE MÚSICAS
    ============================================= */
 .songs-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px; }
 
