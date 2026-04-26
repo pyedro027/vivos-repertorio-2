@@ -10,14 +10,12 @@
     selectedKeys: [],
     keysCache: {},
     detailTab: "keys",
-    lastFocusEl: null,
-    currentPage: "repertorio"
+    lastFocusEl: null
   };
 
   const el = {
     searchInput:    document.getElementById("searchInput"),
     songsList:      document.getElementById("songsList"),
-    songCount:      document.getElementById("songCount"),
     emptyState:     document.getElementById("emptyState"),
     toast:          document.getElementById("toast"),
     addSongBtn:     document.getElementById("addSongBtn"),
@@ -45,27 +43,19 @@
     tabLyrics:      document.getElementById("tabLyrics"),
     paneKeys:       document.getElementById("paneKeys"),
     paneLyrics:     document.getElementById("paneLyrics"),
-    brandLogo:      document.getElementById("brandLogo"),
-    brandFallback:  document.getElementById("brandFallback"),
     navRepertorio:  document.getElementById("navRepertorio"),
+    navCulto:       document.getElementById("navCulto"),
+    pageRepertorio: document.getElementById("pageRepertorio"),
+    pageCulto:      document.getElementById("pageCulto"),
+    cultoSongsList: document.getElementById("cultoSongsList"),
+    cultoEmptyState:document.getElementById("cultoEmptyState"),
+    clearSetlistBtn:document.getElementById("clearSetlistBtn"),
     cifraUrlField:  document.getElementById("cifraUrlField"),
     openCifraBtn:   document.getElementById("openCifraBtn"),
     saveCifraBtn:   document.getElementById("saveCifraBtn"),
-    // Culto (Setlist)
-    pageRepertorio:     document.getElementById("pageRepertorio"),
-    pageCulto:          document.getElementById("pageCulto"),
-    cultoSongsList:     document.getElementById("cultoSongsList"),
-    cultoEmptyState:    document.getElementById("cultoEmptyState"),
-    cultoSongCount:     document.getElementById("cultoSongCount"),
-    clearSetlistBtn:    document.getElementById("clearSetlistBtn"),
-    // Bottom Nav
-    bottomNavRepertorio: document.getElementById("bottomNavRepertorio"),
-    bottomNavCulto:      document.getElementById("bottomNavCulto"),
-    bottomNavAjustes:    document.getElementById("bottomNavAjustes"),
   };
 
   // ===================== UTILS =====================
-
   function normalizeTitle(title, stripNumberPrefix = false) {
     let value = (title || "").trim();
     if (stripNumberPrefix) value = value.replace(/^\s*\d+[\.\-\)]\s*/, "");
@@ -78,7 +68,7 @@
     el.toast.dataset.type = type;
     el.toast.classList.add("show");
     clearTimeout(showToast._t);
-    showToast._t = setTimeout(() => el.toast.classList.remove("show"), 2000);
+    showToast._t = setTimeout(() => el.toast.classList.remove("show"), 2500);
   }
 
   function debounce(fn, delay = 300) {
@@ -129,120 +119,81 @@
 
   async function saveCifraUrl() {
     if (!state.selectedSong) return;
-    const raw = (el.cifraUrlField?.value || "").trim();
-    const url = raw || getDefaultCifraSearchUrl(state.selectedSong.title);
-    const { error } = await window.supabaseClient
-      .from("songs")
-      .update({ cifra_url: url })
-      .eq("id", state.selectedSong.id);
-    if (error) { console.error(error); showToast("Erro ao salvar link da cifra."); return; }
+    const url = (el.cifraUrlField?.value || "").trim() || getDefaultCifraSearchUrl(state.selectedSong.title);
+    const { error } = await window.supabaseClient.from("songs").update({ cifra_url: url }).eq("id", state.selectedSong.id);
+    if (error) { showToast("Erro ao salvar cifra."); return; }
     el.cifraUrlField.value = url;
-    showToast("✓ Link da cifra salvo!", "success");
+    showToast("Link salvo!", "success");
   }
 
-  // ===================== PAGE NAVIGATION =====================
+  // ===================== RENDERIZAÇÃO =====================
+  function createSongCard(song, isCultoList = false) {
+    const card = document.createElement("div");
+    card.className = "song-card";
 
-  function switchPage(page) {
-    state.currentPage = page;
+    // Pega o tom do Pastor/Líder ou o primeiro disponível para o Badge
+    const cached = state.keysCache[song.id] || [];
+    let mainKey = "♪";
+    const pastorKey = cached.find(k => k.member_name.includes("Pastor") && k.key);
+    const anyKey = cached.find(k => k.key);
+    if (pastorKey) mainKey = pastorKey.key;
+    else if (anyKey) mainKey = anyKey.key;
 
-    // Toggle page visibility
-    el.pageRepertorio.classList.toggle("page-hidden", page !== "repertorio");
-    el.pageCulto.classList.toggle("page-hidden", page !== "culto");
+    const badge = document.createElement("div");
+    badge.className = "key-badge";
+    badge.textContent = mainKey;
 
-    // Toggle sticky search visibility
-    const stickySearch = document.querySelector(".sticky-search");
-    if (stickySearch) stickySearch.style.display = page === "repertorio" ? "" : "none";
+    const info = document.createElement("div");
+    info.className = "song-info";
+    
+    const title = document.createElement("span");
+    title.className = "song-title";
+    title.textContent = song.title;
 
-    // Bottom nav active state
-    el.bottomNavRepertorio.classList.toggle("nav-active", page === "repertorio");
-    el.bottomNavCulto.classList.toggle("nav-active", page === "culto");
-    if (el.bottomNavAjustes) el.bottomNavAjustes.classList.toggle("nav-active", page === "ajustes");
+    const membersInfo = document.createElement("span");
+    membersInfo.className = "song-members";
+    const keysText = cached.filter(k => k.key).map(k => `${k.member_name.split(" ")[0]}: ${k.key}`).join(" • ");
+    membersInfo.textContent = keysText || "Sem tons salvos";
 
-    // Update fill-icon on bottom nav
-    const repIcon = el.bottomNavRepertorio.querySelector(".material-symbols-outlined");
-    const cultoIcon = el.bottomNavCulto.querySelector(".material-symbols-outlined");
-    if (repIcon) repIcon.classList.toggle("fill-icon", page === "repertorio");
-    if (cultoIcon) cultoIcon.classList.toggle("fill-icon", page === "culto");
+    info.append(title, membersInfo);
 
-    // Load setlist data when switching to culto
-    if (page === "culto") {
-      loadSetlistSongs();
-    }
+    const starBtn = document.createElement("button");
+    starBtn.className = `star-btn ${song.on_setlist ? "active" : ""}`;
+    starBtn.innerHTML = `<span class="material-symbols-outlined">${song.on_setlist ? "star" : "star_border"}</span>`;
+    
+    starBtn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const newVal = !song.on_setlist;
+      starBtn.classList.toggle("active", newVal);
+      starBtn.innerHTML = `<span class="material-symbols-outlined">${newVal ? "star" : "star_border"}</span>`;
+      song.on_setlist = newVal;
+      
+      await window.supabaseClient.from("songs").update({ on_setlist: newVal }).eq("id", song.id);
+      if(!el.pageCulto.classList.contains("hidden")) renderCultoSongs();
+    });
+
+    card.append(badge, info, starBtn);
+    card.addEventListener("click", () => openDetail(song.id));
+    
+    const li = document.createElement("li");
+    li.appendChild(card);
+    return li;
   }
-
-  // ===================== REPERTÓRIO =====================
 
   function renderSongs() {
     el.songsList.innerHTML = "";
-    el.songCount.textContent = String(state.filteredSongs.length);
     el.emptyState.style.display = state.filteredSongs.length > 0 ? "none" : "block";
-
     state.filteredSongs.forEach((song) => {
-      const li  = document.createElement("li");
-      const btn = document.createElement("button");
-      btn.type  = "button";
+      el.songsList.appendChild(createSongCard(song));
+    });
+  }
 
-      // Left side: key badge + song info
-      const left = document.createElement("div");
-      left.className = "song-card-left";
-
-      // Key badge (shows first available key)
-      const keyBadge = document.createElement("div");
-      keyBadge.className = "song-key-badge";
-      const cached = state.keysCache[song.id] || [];
-      const firstKey = cached.find(k => k.key);
-      keyBadge.textContent = firstKey ? firstKey.key : "♪";
-      left.appendChild(keyBadge);
-
-      // Song info container
-      const songInfo = document.createElement("div");
-      songInfo.className = "song-info";
-
-      const row = document.createElement("div");
-      row.className = "song-card-row";
-
-      const titleEl = document.createElement("span");
-      titleEl.className = "song-title";
-      titleEl.textContent = song.title;
-      row.appendChild(titleEl);
-
-      const keysRow = document.createElement("span");
-      keysRow.className = "song-keys-preview";
-      cached.forEach(({ member_name, key }) => {
-        if (!key) return;
-        const chip = document.createElement("span");
-        chip.className = "key-chip";
-        chip.textContent = `${member_name.split(" ")[0]}: ${key}`;
-        keysRow.appendChild(chip);
-      });
-      row.appendChild(keysRow);
-      songInfo.appendChild(row);
-      left.appendChild(songInfo);
-
-      // Right side: action buttons
-      const actions = document.createElement("div");
-      actions.className = "song-card-actions";
-
-      // Setlist toggle button
-      const setlistBtn = document.createElement("button");
-      setlistBtn.type = "button";
-      setlistBtn.className = "btn-icon" + (song.on_setlist ? " setlist-active" : "");
-      const starIcon = document.createElement("span");
-      starIcon.className = "material-symbols-outlined" + (song.on_setlist ? " fill-icon" : "");
-      starIcon.textContent = "star";
-      starIcon.style.fontSize = "22px";
-      setlistBtn.appendChild(starIcon);
-      setlistBtn.title = song.on_setlist ? "Remover do culto" : "Adicionar ao culto";
-      setlistBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        toggleSetlist(song.id, !song.on_setlist);
-      });
-      actions.appendChild(setlistBtn);
-
-      btn.append(left, actions);
-      btn.addEventListener("click", () => openDetail(song.id));
-      li.appendChild(btn);
-      el.songsList.appendChild(li);
+  function renderCultoSongs() {
+    el.cultoSongsList.innerHTML = "";
+    const cultoSongs = state.songs.filter(s => s.on_setlist === true);
+    el.cultoEmptyState.style.display = cultoSongs.length > 0 ? "none" : "block";
+    cultoSongs.forEach((song) => {
+      el.cultoSongsList.appendChild(createSongCard(song, true));
     });
   }
 
@@ -252,13 +203,27 @@
     renderSongs();
   }
 
-  // ===================== SUPABASE — MÚSICAS =====================
+  function switchPage(page) {
+    if (page === "repertorio") {
+      el.navRepertorio.classList.add("nav-active");
+      el.navCulto.classList.remove("nav-active");
+      el.pageRepertorio.classList.remove("hidden");
+      el.pageCulto.classList.add("hidden");
+    } else {
+      el.navCulto.classList.add("nav-active");
+      el.navRepertorio.classList.remove("nav-active");
+      el.pageCulto.classList.remove("hidden");
+      el.pageRepertorio.classList.add("hidden");
+      renderCultoSongs();
+    }
+  }
 
+  // ===================== SUPABASE =====================
   async function loadSongs() {
-    if (!window.supabaseClient) { showToast("Supabase não configurado."); return; }
+    if (!window.supabaseClient) return;
     const { data, error } = await window.supabaseClient
       .from("songs").select("id, title, title_norm, on_setlist").order("title", { ascending: true });
-    if (error) { console.error(error); showToast("Erro ao carregar músicas."); return; }
+    if (error) return;
     state.songs = data || [];
     await loadAllKeys();
     applyFilter(el.searchInput.value);
@@ -267,9 +232,7 @@
   async function loadAllKeys() {
     if (!state.songs.length) return;
     const ids = state.songs.map(s => s.id);
-    const { data, error } = await window.supabaseClient
-      .from("song_keys").select("song_id, member_name, key").in("song_id", ids);
-    if (error) { console.error(error); return; }
+    const { data } = await window.supabaseClient.from("song_keys").select("song_id, member_name, key").in("song_id", ids);
     state.keysCache = {};
     (data || []).forEach(row => {
       if (!state.keysCache[row.song_id]) state.keysCache[row.song_id] = [];
@@ -279,39 +242,28 @@
 
   async function addSong(title) {
     const parsed = normalizeTitle(title);
-    if (!parsed.title) { showToast("Informe um título válido."); return; }
-    const { error } = await window.supabaseClient
-      .from("songs").insert({ title: parsed.title, title_norm: parsed.norm });
-    if (error) {
-      showToast(error.code === "23505" ? "Essa música já existe." : "Erro ao salvar música.");
-      return;
-    }
+    if (!parsed.title) return;
+    const { error } = await window.supabaseClient.from("songs").insert({ title: parsed.title, title_norm: parsed.norm });
+    if (error) { showToast("Erro. Música já existe?"); return; }
     closeModal(el.songModal);
     el.newSongTitle.value = "";
     await loadSongs();
-    showToast("✓ Música adicionada!", "success");
+    showToast("Música adicionada!", "success");
   }
 
   // ===================== DETALHES =====================
-
   async function openDetail(songId) {
     state.selectedSong = state.songs.find(s => s.id === songId);
     if (!state.selectedSong) return;
 
-    const { data: keysData, error: keysErr } = await window.supabaseClient
-      .from("song_keys").select("id, member_name, key")
-      .eq("song_id", songId).order("member_name", { ascending: true });
-    if (keysErr) { console.error(keysErr); showToast("Erro ao carregar tons."); return; }
-
+    const { data: keysData } = await window.supabaseClient.from("song_keys").select("id, member_name, key").eq("song_id", songId).order("member_name", { ascending: true });
     const mapByMember = new Map((keysData || []).map(k => [k.member_name, k]));
     state.selectedKeys = MEMBERS.map(name => {
       const ex = mapByMember.get(name);
       return { id: ex?.id || null, member_name: name, key: ex?.key || "" };
     });
 
-    const { data: songData } = await window.supabaseClient
-      .from("songs").select("lyrics, cifra_url").eq("id", songId).single();
-
+    const { data: songData } = await window.supabaseClient.from("songs").select("lyrics, cifra_url").eq("id", songId).single();
     el.lyricsField.value = songData?.lyrics || "";
     if (el.cifraUrlField) el.cifraUrlField.value = songData?.cifra_url || "";
 
@@ -332,270 +284,107 @@
   function renderKeyFields() {
     el.keyFields.innerHTML = "";
     state.selectedKeys.forEach((item, index) => {
-      const wrap = document.createElement("div");
-      wrap.className = "key-field";
+      const wrap = document.createElement("div"); wrap.className = "key-field";
+      const label = document.createElement("label"); label.textContent = item.member_name;
+      const selector = document.createElement("div"); selector.className = "key-selector";
+      const btnPrev = document.createElement("button"); btnPrev.className = "key-nav-btn"; btnPrev.innerHTML = "−";
+      const display = document.createElement("span"); display.className = "key-display";
+      const btnNext = document.createElement("button"); btnNext.className = "key-nav-btn"; btnNext.innerHTML = "+";
 
-      const label = document.createElement("label");
-      label.textContent = item.member_name;
-
-      const keySelector = document.createElement("div");
-      keySelector.className = "key-selector";
-
-      const btnPrev = document.createElement("button");
-      btnPrev.type = "button";
-      btnPrev.className = "key-nav-btn";
-      btnPrev.innerHTML = "&#8249;";
-
-      const keyDisplay = document.createElement("span");
-      keyDisplay.className = "key-display";
-
-      const btnNext = document.createElement("button");
-      btnNext.type = "button";
-      btnNext.className = "key-nav-btn";
-      btnNext.innerHTML = "&#8250;";
-
-      function getIdx() {
-        const i = KEY_OPTIONS.indexOf(state.selectedKeys[index].key);
-        return i === -1 ? 0 : i;
-      }
-      function updateDisplay() {
+      const updateDisplay = () => {
         const k = state.selectedKeys[index].key;
-        keyDisplay.textContent = k || "—";
-        keyDisplay.classList.toggle("has-key", !!k);
-      }
+        display.textContent = k || "—";
+        display.classList.toggle("has-key", !!k);
+      };
 
-      btnPrev.addEventListener("click", () => {
-        let i = getIdx() - 1;
-        if (i < 0) i = KEY_OPTIONS.length - 1;
-        state.selectedKeys[index].key = KEY_OPTIONS[i];
-        updateDisplay();
-      });
-      btnNext.addEventListener("click", () => {
-        let i = getIdx() + 1;
-        if (i >= KEY_OPTIONS.length) i = 0;
-        state.selectedKeys[index].key = KEY_OPTIONS[i];
-        updateDisplay();
-      });
-      keyDisplay.addEventListener("click", () => {
-        state.selectedKeys[index].key = "";
-        updateDisplay();
-      });
-      keyDisplay.title = "Toque para limpar";
+      btnPrev.onclick = () => { let i = KEY_OPTIONS.indexOf(state.selectedKeys[index].key) - 1; if (i < 0) i = KEY_OPTIONS.length - 1; state.selectedKeys[index].key = KEY_OPTIONS[i]; updateDisplay(); };
+      btnNext.onclick = () => { let i = KEY_OPTIONS.indexOf(state.selectedKeys[index].key) + 1; if (i >= KEY_OPTIONS.length) i = 0; state.selectedKeys[index].key = KEY_OPTIONS[i]; updateDisplay(); };
+      display.onclick = () => { state.selectedKeys[index].key = ""; updateDisplay(); };
+      
       updateDisplay();
-
-      keySelector.append(btnPrev, keyDisplay, btnNext);
-      wrap.append(label, keySelector);
+      selector.append(btnPrev, display, btnNext);
+      wrap.append(label, selector);
       el.keyFields.appendChild(wrap);
     });
   }
 
   async function saveAllKeys() {
-    if (!state.selectedSong) return;
-    const payload = state.selectedKeys.map(item => ({
-      song_id: state.selectedSong.id,
-      member_name: item.member_name,
-      key: item.key || null
-    }));
-    const { error } = await window.supabaseClient
-      .from("song_keys").upsert(payload, { onConflict: "song_id,member_name" });
-    if (error) { console.error(error); showToast("Erro ao salvar tons."); return; }
-    state.keysCache[state.selectedSong.id] = state.selectedKeys
-      .filter(k => k.key).map(k => ({ member_name: k.member_name, key: k.key }));
+    const payload = state.selectedKeys.map(i => ({ song_id: state.selectedSong.id, member_name: i.member_name, key: i.key || null }));
+    await window.supabaseClient.from("song_keys").upsert(payload, { onConflict: "song_id,member_name" });
+    state.keysCache[state.selectedSong.id] = state.selectedKeys.filter(k => k.key).map(k => ({ member_name: k.member_name, key: k.key }));
     closeModal(el.detailModal);
     renderSongs();
-    showToast("✓ Tons salvos!", "success");
+    if(!el.pageCulto.classList.contains("hidden")) renderCultoSongs();
+    showToast("Tons salvos!", "success");
   }
 
   async function saveLyrics() {
-    if (!state.selectedSong) return;
-    const lyrics = el.lyricsField.value.trim();
-    const { error } = await window.supabaseClient
-      .from("songs").update({ lyrics: lyrics || null }).eq("id", state.selectedSong.id);
-    if (error) { console.error(error); showToast("Erro ao salvar letra."); return; }
+    await window.supabaseClient.from("songs").update({ lyrics: el.lyricsField.value.trim() || null }).eq("id", state.selectedSong.id);
     closeModal(el.detailModal);
-    showToast("✓ Letra salva!", "success");
+    showToast("Letra salva!", "success");
   }
 
   async function deleteSong() {
-    if (!state.selectedSong) return;
     const ok = await showConfirm(`Excluir "${state.selectedSong.title}"?`);
     if (!ok) return;
-    const { error } = await window.supabaseClient
-      .from("songs").delete().eq("id", state.selectedSong.id);
-    if (error) { console.error(error); showToast("Erro ao excluir música."); return; }
+    await window.supabaseClient.from("songs").delete().eq("id", state.selectedSong.id);
     closeModal(el.detailModal);
     await loadSongs();
     showToast("Música excluída.");
   }
 
-  // ===================== SETLIST (CULTO) =====================
-
-  async function toggleSetlist(songId, value) {
-    if (!window.supabaseClient) return;
-    const { error } = await window.supabaseClient
-      .from("songs")
-      .update({ on_setlist: value })
-      .eq("id", songId);
-    if (error) {
-      console.error(error);
-      showToast("Erro ao atualizar setlist.");
-      return;
-    }
-    // Update local state
-    const song = state.songs.find(s => s.id === songId);
-    if (song) song.on_setlist = value;
-    renderSongs();
-    showToast(value ? "✓ Adicionada ao culto!" : "Removida do culto.", value ? "success" : "default");
-  }
-
-  async function loadSetlistSongs() {
-    if (!window.supabaseClient) return;
-    const { data, error } = await window.supabaseClient
-      .from("songs")
-      .select("id, title, on_setlist")
-      .eq("on_setlist", true)
-      .order("title", { ascending: true });
-    if (error) { console.error(error); return; }
-
-    const setlistSongs = data || [];
-    el.cultoSongCount.textContent = String(setlistSongs.length);
-    el.cultoEmptyState.style.display = setlistSongs.length > 0 ? "none" : "block";
-    el.cultoSongsList.innerHTML = "";
-
-    for (const song of setlistSongs) {
-      const card = document.createElement("div");
-      card.className = "culto-song-card";
-
-      const title = document.createElement("div");
-      title.className = "culto-song-title";
-      title.textContent = song.title;
-      card.appendChild(title);
-
-      // Load keys for this song
-      const cached = state.keysCache[song.id] || [];
-      if (cached.length > 0) {
-        const keysGrid = document.createElement("div");
-        keysGrid.className = "culto-keys-grid";
-        cached.forEach(({ member_name, key }) => {
-          if (!key) return;
-          const chip = document.createElement("span");
-          chip.className = "culto-key-chip";
-          chip.textContent = `${member_name}: ${key}`;
-          keysGrid.appendChild(chip);
-        });
-        card.appendChild(keysGrid);
-      }
-
-      // Remove button
-      const removeBtn = document.createElement("button");
-      removeBtn.className = "culto-song-remove";
-      removeBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px">close</span> Remover';
-      removeBtn.addEventListener("click", async () => {
-        await toggleSetlist(song.id, false);
-        loadSetlistSongs();
-      });
-      card.appendChild(removeBtn);
-
-      el.cultoSongsList.appendChild(card);
-    }
-  }
-
-  async function clearSetlist() {
-    const ok = await showConfirm("Limpar todas as músicas do culto?");
-    if (!ok) return;
-    const { error } = await window.supabaseClient
-      .from("songs")
-      .update({ on_setlist: false })
-      .eq("on_setlist", true);
-    if (error) { console.error(error); showToast("Erro ao limpar setlist."); return; }
-    // Update local state
-    state.songs.forEach(s => s.on_setlist = false);
-    renderSongs();
-    loadSetlistSongs();
-    showToast("Lista do culto limpa.", "default");
-  }
-
-  // ===================== IMPORTAÇÃO =====================
-
   async function bulkImport() {
-    const raw = el.bulkText.value || "";
-    const strip = el.stripNumbers.checked;
-    const rows = raw.split(/\r?\n/);
+    const rows = (el.bulkText.value || "").split(/\r?\n/);
     const processed = [], seen = new Set();
     for (const row of rows) {
-      const n = normalizeTitle(row, strip);
+      const n = normalizeTitle(row, el.stripNumbers.checked);
       if (!n.title || seen.has(n.norm)) continue;
-      seen.add(n.norm);
-      processed.push(n);
+      seen.add(n.norm); processed.push(n);
     }
-    if (!processed.length) { el.importSummary.textContent = "Nenhum título válido encontrado."; return; }
-    const { data: existing } = await window.supabaseClient
-      .from("songs").select("title_norm").in("title_norm", processed.map(i => i.norm));
+    if (!processed.length) return;
+    const { data: existing } = await window.supabaseClient.from("songs").select("title_norm").in("title_norm", processed.map(i => i.norm));
     const existingSet = new Set((existing || []).map(i => i.title_norm));
     const toInsert = processed.filter(i => !existingSet.has(i.norm));
-    let inserted = 0;
     for (let i = 0; i < toInsert.length; i += CHUNK_SIZE) {
-      const chunk = toInsert.slice(i, i + CHUNK_SIZE).map(item => ({ title: item.title, title_norm: item.norm }));
-      const { error } = await window.supabaseClient.from("songs").insert(chunk);
-      if (error) { showToast("Erro durante importação."); return; }
-      inserted += chunk.length;
+      await window.supabaseClient.from("songs").insert(toInsert.slice(i, i + CHUNK_SIZE).map(item => ({ title: item.title, title_norm: item.norm })));
     }
-    el.importSummary.textContent = [
-      `Total processado: ${processed.length}`,
-      `Novas inseridas: ${inserted}`,
-      `Ignoradas (duplicadas): ${processed.length - inserted}`
-    ].join("\n");
     await loadSongs();
-    showToast(`✓ ${inserted} músicas importadas!`, "success");
+    closeModal(el.importModal);
+    showToast("Músicas importadas!", "success");
   }
 
   // ===================== EVENTOS =====================
-
   function bindEvents() {
-    el.brandLogo.addEventListener("error", () => {
-      el.brandLogo.style.display = "none";
-      el.brandFallback.style.display = "grid";
-    });
     el.searchInput.addEventListener("input", debounce(e => applyFilter(e.target.value), 300));
     el.addSongBtn.addEventListener("click",    () => openModal(el.songModal, el.newSongTitle));
     el.bulkImportBtn.addEventListener("click", () => openModal(el.importModal, el.bulkText));
     el.confirmAddSong.addEventListener("click", () => addSong(el.newSongTitle.value));
-    el.newSongTitle.addEventListener("keydown", e => { if (e.key === "Enter") addSong(el.newSongTitle.value); });
     el.confirmImport.addEventListener("click", bulkImport);
     el.tabKeys.addEventListener("click",       () => switchDetailTab("keys"));
     el.tabLyrics.addEventListener("click",     () => switchDetailTab("lyrics"));
     el.saveAllKeys.addEventListener("click",   saveAllKeys);
     el.saveLyrics.addEventListener("click",    saveLyrics);
     el.deleteSongBtn.addEventListener("click", deleteSong);
+    el.navRepertorio.addEventListener("click", () => switchPage("repertorio"));
+    el.navCulto.addEventListener("click", () => switchPage("culto"));
+    
+    el.clearSetlistBtn.addEventListener("click", async () => {
+      const ok = await showConfirm("Remover todas as músicas do culto?");
+      if (!ok) return;
+      await window.supabaseClient.from("songs").update({ on_setlist: false }).eq("on_setlist", true);
+      state.songs.forEach(s => s.on_setlist = false);
+      renderCultoSongs();
+      applyFilter(el.searchInput.value);
+      showToast("Lista limpa!", "success");
+    });
 
     if (el.openCifraBtn) el.openCifraBtn.addEventListener("click", openCifra);
     if (el.saveCifraBtn) el.saveCifraBtn.addEventListener("click", saveCifraUrl);
 
-    // Bottom navigation
-    el.bottomNavRepertorio.addEventListener("click", () => switchPage("repertorio"));
-    el.bottomNavCulto.addEventListener("click", () => switchPage("culto"));
-
-    // Setlist clear
-    el.clearSetlistBtn.addEventListener("click", clearSetlist);
-
-    document.querySelectorAll("[data-close]").forEach(btn => {
-      btn.addEventListener("click", () => closeModal(document.getElementById(btn.dataset.close)));
-    });
-    [el.songModal, el.importModal, el.detailModal].forEach(modal => {
-      modal.addEventListener("click", e => { if (e.target === modal) closeModal(modal); });
-    });
-    document.addEventListener("keydown", e => {
-      if (e.key !== "Escape") return;
-      [el.songModal, el.importModal, el.detailModal, el.confirmModal].forEach(modal => {
-        if (!modal.classList.contains("hidden")) closeModal(modal);
-      });
-    });
+    document.querySelectorAll("[data-close]").forEach(btn => btn.addEventListener("click", () => closeModal(document.getElementById(btn.dataset.close))));
+    [el.songModal, el.importModal, el.detailModal].forEach(m => m.addEventListener("click", e => { if (e.target === m) closeModal(m); }));
   }
 
-  async function init() {
-    bindEvents();
-    await loadSongs();
-  }
-
+  async function init() { bindEvents(); await loadSongs(); }
   init();
 })();
