@@ -50,6 +50,7 @@
     cultoSongsList: document.getElementById("cultoSongsList"),
     cultoEmptyState:document.getElementById("cultoEmptyState"),
     clearSetlistBtn:document.getElementById("clearSetlistBtn"),
+    shareSetlistBtn:document.getElementById("shareSetlistBtn"), // NOVO BOTÃO
     cifraUrlField:  document.getElementById("cifraUrlField"),
     openCifraBtn:   document.getElementById("openCifraBtn"),
     saveCifraBtn:   document.getElementById("saveCifraBtn"),
@@ -368,6 +369,7 @@
     el.navRepertorio.addEventListener("click", () => switchPage("repertorio"));
     el.navCulto.addEventListener("click", () => switchPage("culto"));
     
+    // BOTÃO DE LIMPAR LISTA
     el.clearSetlistBtn.addEventListener("click", async () => {
       const ok = await showConfirm("Remover todas as músicas do culto?");
       if (!ok) return;
@@ -376,6 +378,33 @@
       renderCultoSongs();
       applyFilter(el.searchInput.value);
       showToast("Lista limpa!", "success");
+    });
+
+    // NOVO: BOTÃO DE COMPARTILHAR NO WHATSAPP
+    el.shareSetlistBtn.addEventListener("click", () => {
+      const cultoSongs = state.songs.filter(s => s.on_setlist === true);
+      if (cultoSongs.length === 0) {
+        showToast("O setlist está vazio!");
+        return;
+      }
+      
+      let text = "🔥 *Setlist do Culto:*\n\n";
+      
+      cultoSongs.forEach((song, index) => {
+        // Pega o tom principal para mostrar na mensagem
+        const cached = state.keysCache[song.id] || [];
+        let mainKey = "";
+        const pastorKey = cached.find(k => k.member_name.includes("Pastor") && k.key);
+        const anyKey = cached.find(k => k.key);
+        if (pastorKey) mainKey = ` (${pastorKey.key})`;
+        else if (anyKey) mainKey = ` (${anyKey.key})`;
+        
+        text += `${index + 1}. ${song.title}${mainKey}\n`;
+      });
+      
+      // Abre o link do WhatsApp com o texto pronto
+      const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+      window.open(whatsappUrl, "_blank");
     });
 
     if (el.openCifraBtn) el.openCifraBtn.addEventListener("click", openCifra);
