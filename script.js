@@ -50,7 +50,7 @@
     cultoSongsList: document.getElementById("cultoSongsList"),
     cultoEmptyState:document.getElementById("cultoEmptyState"),
     clearSetlistBtn:document.getElementById("clearSetlistBtn"),
-    shareSetlistBtn:document.getElementById("shareSetlistBtn"), // NOVO BOTÃO
+    shareSetlistBtn:document.getElementById("shareSetlistBtn"),
     cifraUrlField:  document.getElementById("cifraUrlField"),
     openCifraBtn:   document.getElementById("openCifraBtn"),
     saveCifraBtn:   document.getElementById("saveCifraBtn"),
@@ -222,8 +222,9 @@
   // ===================== SUPABASE =====================
   async function loadSongs() {
     if (!window.supabaseClient) return;
+    // Agora puxamos também a cifra_url na lista inicial para o WhatsApp ter acesso rápido
     const { data, error } = await window.supabaseClient
-      .from("songs").select("id, title, title_norm, on_setlist").order("title", { ascending: true });
+      .from("songs").select("id, title, title_norm, on_setlist, cifra_url").order("title", { ascending: true });
     if (error) return;
     state.songs = data || [];
     await loadAllKeys();
@@ -380,7 +381,7 @@
       showToast("Lista limpa!", "success");
     });
 
-    // NOVO: BOTÃO DE COMPARTILHAR NO WHATSAPP
+    // BOTÃO DE COMPARTILHAR NO WHATSAPP (Agora com link e cifra)
     el.shareSetlistBtn.addEventListener("click", () => {
       const cultoSongs = state.songs.filter(s => s.on_setlist === true);
       if (cultoSongs.length === 0) {
@@ -391,18 +392,25 @@
       let text = "🔥 *Setlist do Culto:*\n\n";
       
       cultoSongs.forEach((song, index) => {
-        // Pega o tom principal para mostrar na mensagem
+        // Pega o tom principal
         const cached = state.keysCache[song.id] || [];
         let mainKey = "";
         const pastorKey = cached.find(k => k.member_name.includes("Pastor") && k.key);
         const anyKey = cached.find(k => k.key);
         if (pastorKey) mainKey = ` (${pastorKey.key})`;
         else if (anyKey) mainKey = ` (${anyKey.key})`;
+
+        // Cria ou pega o link da cifra
+        const cifraLink = song.cifra_url || getDefaultCifraSearchUrl(song.title);
         
-        text += `${index + 1}. ${song.title}${mainKey}\n`;
+        text += `${index + 1}. *${song.title}*${mainKey}\n🎸 Cifra: ${cifraLink}\n\n`;
       });
       
-      // Abre o link do WhatsApp com o texto pronto
+      // Cria o link direto para a página do Culto no App
+      // Pega a URL atual sem parâmetros, e adiciona ?tab=culto
+      const appUrl = window.location.origin + window.location.pathname + "?tab=culto";
+      text += `📱 *Ver direto no App:*\n${appUrl}`;
+      
       const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
       window.open(whatsappUrl, "_blank");
     });
@@ -414,6 +422,16 @@
     [el.songModal, el.importModal, el.detailModal].forEach(m => m.addEventListener("click", e => { if (e.target === m) closeModal(m); }));
   }
 
-  async function init() { bindEvents(); await loadSongs(); }
+  async function init() { 
+    bindEvents(); 
+    await loadSongs(); 
+    
+    // VERIFICA SE A URL TEM "?tab=culto" PARA ABRIR DIRETO NO SETLIST
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get("tab") === "culto") {
+      switchPage("culto");
+    }
+  }
+
   init();
 })();
