@@ -51,7 +51,7 @@
 
     <section class="controls action-row" style="padding: 0 0 16px 0;">
       <button id="shareSetlistBtn" class="btn btn-primary" style="flex: 3;">
-        <span class="material-symbols-outlined">share</span> Enviar no WhatsApp
+        <span class="material-symbols-outlined">share</span> Enviar Setlist
       </button>
       <button id="clearSetlistBtn" class="btn btn-danger" style="flex: 1; padding: 14px 0;" title="Limpar Lista">
         <span class="material-symbols-outlined">delete_sweep</span>
@@ -64,10 +64,38 @@
     </section>
   </main>
 
+  <main id="pageEnsaio" class="app-main hidden">
+    <header class="app-header">
+      <img src="assets/logo.png" alt="Logo" class="header-logo" onerror="this.style.display='none'">
+      <div>
+        <h1>Ensaios</h1>
+        <p>Músicas para treinar</p>
+      </div>
+    </header>
+
+    <section class="controls action-row" style="padding: 0 0 16px 0;">
+      <button id="shareEnsaioBtn" class="btn btn-primary" style="flex: 3; background: #6B6B66;">
+        <span class="material-symbols-outlined">share</span> Enviar Músicas
+      </button>
+      <button id="clearEnsaioBtn" class="btn btn-danger" style="flex: 1; padding: 14px 0;" title="Limpar Ensaios">
+        <span class="material-symbols-outlined">delete_sweep</span>
+      </button>
+    </section>
+
+    <section class="list-wrap">
+      <ul id="ensaioSongsList" class="songs-list"></ul>
+      <p id="ensaioEmptyState" class="empty-state">Nenhuma música para ensaiar. Adicione clicando no fone de ouvido!</p>
+    </section>
+  </main>
+
   <nav class="bottom-nav">
     <button id="navRepertorio" class="nav-btn nav-active">
       <span class="material-symbols-outlined">library_music</span>
       <span>Repertório</span>
+    </button>
+    <button id="navEnsaio" class="nav-btn">
+      <span class="material-symbols-outlined">headphones</span>
+      <span>Ensaios</span>
     </button>
     <button id="navCulto" class="nav-btn">
       <span class="material-symbols-outlined">local_fire_department</span>
@@ -106,7 +134,7 @@
       <h3 id="detailTitle">Detalhes</h3>
       <div class="tabs">
         <button id="tabKeys" class="tab-btn tab-active">Tons</button>
-        <button id="tabLyrics" class="tab-btn">Letra & Cifra</button>
+        <button id="tabLyrics" class="tab-btn">Letra & Links</button>
       </div>
       
       <div id="paneKeys">
@@ -119,16 +147,28 @@
       
       <div id="paneLyrics" class="hidden">
         <textarea id="lyricsField" class="input-textarea lyrics-textarea" placeholder="Cole a letra..."></textarea>
-        <div class="cifra-row">
+        
+        <div class="cifra-row" style="margin-bottom: 8px;">
           <div style="flex:1;">
-            <input id="cifraUrlField" class="input-text" type="url" placeholder="Link da cifra..." />
+            <input id="cifraUrlField" class="input-text" type="url" placeholder="Link da cifra..." style="margin-bottom: 0;" />
           </div>
-          <div class="cifra-actions">
-            <button id="openCifraBtn" class="btn btn-soft"><span class="material-symbols-outlined">open_in_new</span></button>
-            <button id="saveCifraBtn" class="btn btn-primary">Salvar Link</button>
+          <div class="cifra-actions" style="display: flex; gap: 8px;">
+            <button id="openCifraBtn" class="btn btn-soft" title="Buscar Cifra"><span class="material-symbols-outlined">search</span></button>
+            <button id="saveCifraBtn" class="btn btn-primary"><span class="material-symbols-outlined">save</span></button>
           </div>
         </div>
-        <button id="saveLyrics" class="btn btn-primary full" style="margin-top:12px;">Salvar Letra</button>
+
+        <div class="cifra-row" style="margin-bottom: 16px;">
+          <div style="flex:1;">
+            <input id="youtubeUrlField" class="input-text" type="url" placeholder="Link do YouTube..." style="margin-bottom: 0;" />
+          </div>
+          <div class="cifra-actions" style="display: flex; gap: 8px;">
+            <button id="openYoutubeBtn" class="btn btn-soft" title="Buscar no YouTube"><span class="material-symbols-outlined">play_circle</span></button>
+            <button id="saveYoutubeBtn" class="btn btn-primary"><span class="material-symbols-outlined">save</span></button>
+          </div>
+        </div>
+
+        <button id="saveLyrics" class="btn btn-primary full">Salvar Letra</button>
       </div>
     </div>
   </div>
