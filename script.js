@@ -43,17 +43,33 @@
     tabLyrics:      document.getElementById("tabLyrics"),
     paneKeys:       document.getElementById("paneKeys"),
     paneLyrics:     document.getElementById("paneLyrics"),
+    
+    // NAVEGAÇÃO
     navRepertorio:  document.getElementById("navRepertorio"),
     navCulto:       document.getElementById("navCulto"),
+    navEnsaio:      document.getElementById("navEnsaio"),
     pageRepertorio: document.getElementById("pageRepertorio"),
     pageCulto:      document.getElementById("pageCulto"),
+    pageEnsaio:     document.getElementById("pageEnsaio"),
+    
+    // LISTAS
     cultoSongsList: document.getElementById("cultoSongsList"),
     cultoEmptyState:document.getElementById("cultoEmptyState"),
+    ensaioSongsList:document.getElementById("ensaioSongsList"),
+    ensaioEmptyState:document.getElementById("ensaioEmptyState"),
+    
+    // BOTÕES DE AÇÃO
     clearSetlistBtn:document.getElementById("clearSetlistBtn"),
     shareSetlistBtn:document.getElementById("shareSetlistBtn"),
+    clearEnsaioBtn: document.getElementById("clearEnsaioBtn"),
+    shareEnsaioBtn: document.getElementById("shareEnsaioBtn"),
+    
     cifraUrlField:  document.getElementById("cifraUrlField"),
     openCifraBtn:   document.getElementById("openCifraBtn"),
     saveCifraBtn:   document.getElementById("saveCifraBtn"),
+    youtubeUrlField:document.getElementById("youtubeUrlField"),
+    openYoutubeBtn: document.getElementById("openYoutubeBtn"),
+    saveYoutubeBtn: document.getElementById("saveYoutubeBtn")
   };
 
   // ===================== UTILS =====================
@@ -127,12 +143,27 @@
     showToast("Link salvo!", "success");
   }
 
+  function openYoutube() {
+    if (!state.selectedSong) return;
+    const raw = (el.youtubeUrlField?.value || "").trim();
+    const url = raw || `https://www.youtube.com/results?search_query=${encodeURIComponent(state.selectedSong.title + " oficial")}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+
+  async function saveYoutubeUrl() {
+    if (!state.selectedSong) return;
+    const url = (el.youtubeUrlField?.value || "").trim();
+    const { error } = await window.supabaseClient.from("songs").update({ youtube_url: url }).eq("id", state.selectedSong.id);
+    if (error) { showToast("Erro ao salvar YouTube."); return; }
+    el.youtubeUrlField.value = url;
+    showToast("YouTube salvo!", "success");
+  }
+
   // ===================== RENDERIZAÇÃO =====================
-  function createSongCard(song, isCultoList = false) {
+  function createSongCard(song) {
     const card = document.createElement("div");
     card.className = "song-card";
 
-    // Pega o tom do Pastor/Líder ou o primeiro disponível para o Badge
     const cached = state.keysCache[song.id] || [];
     let mainKey = "♪";
     const pastorKey = cached.find(k => k.member_name.includes("Pastor") && k.key);
@@ -158,6 +189,30 @@
 
     info.append(title, membersInfo);
 
+    // Container para os dois botões (Ensaios e Culto)
+    const actionsBlock = document.createElement("div");
+    actionsBlock.style.display = "flex";
+    actionsBlock.style.gap = "4px";
+
+    // Botão ENSAIO (Fone)
+    const ensaioBtn = document.createElement("button");
+    ensaioBtn.className = `star-btn ${song.on_rehearsal ? "active" : ""}`;
+    ensaioBtn.innerHTML = `<span class="material-symbols-outlined">${song.on_rehearsal ? "headphones" : "headset_off"}</span>`;
+    if(song.on_rehearsal) ensaioBtn.style.color = "#6B6B66"; // Cor diferenciada
+    
+    ensaioBtn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const newVal = !song.on_rehearsal;
+      ensaioBtn.classList.toggle("active", newVal);
+      ensaioBtn.innerHTML = `<span class="material-symbols-outlined">${newVal ? "headphones" : "headset_off"}</span>`;
+      ensaioBtn.style.color = newVal ? "#6B6B66" : "";
+      song.on_rehearsal = newVal;
+      
+      await window.supabaseClient.from("songs").update({ on_rehearsal: newVal }).eq("id", song.id);
+      if(!el.pageEnsaio.classList.contains("hidden")) renderEnsaioSongs();
+    });
+
+    // Botão CULTO (Estrela)
     const starBtn = document.createElement("button");
     starBtn.className = `star-btn ${song.on_setlist ? "active" : ""}`;
     starBtn.innerHTML = `<span class="material-symbols-outlined">${song.on_setlist ? "star" : "star_border"}</span>`;
@@ -173,7 +228,9 @@
       if(!el.pageCulto.classList.contains("hidden")) renderCultoSongs();
     });
 
-    card.append(badge, info, starBtn);
+    actionsBlock.append(ensaioBtn, starBtn);
+    card.append(badge, info, actionsBlock);
+    
     card.addEventListener("click", () => openDetail(song.id));
     
     const li = document.createElement("li");
@@ -193,9 +250,14 @@
     el.cultoSongsList.innerHTML = "";
     const cultoSongs = state.songs.filter(s => s.on_setlist === true);
     el.cultoEmptyState.style.display = cultoSongs.length > 0 ? "none" : "block";
-    cultoSongs.forEach((song) => {
-      el.cultoSongsList.appendChild(createSongCard(song, true));
-    });
+    cultoSongs.forEach((song) => { el.cultoSongsList.appendChild(createSongCard(song)); });
+  }
+
+  function renderEnsaioSongs() {
+    el.ensaioSongsList.innerHTML = "";
+    const ensaioSongs = state.songs.filter(s => s.on_rehearsal === true);
+    el.ensaioEmptyState.style.display = ensaioSongs.length > 0 ? "none" : "block";
+    ensaioSongs.forEach((song) => { el.ensaioSongsList.appendChild(createSongCard(song)); });
   }
 
   function applyFilter(query = "") {
@@ -205,26 +267,33 @@
   }
 
   function switchPage(page) {
+    el.navRepertorio.classList.remove("nav-active");
+    el.navCulto.classList.remove("nav-active");
+    el.navEnsaio.classList.remove("nav-active");
+    
+    el.pageRepertorio.classList.add("hidden");
+    el.pageCulto.classList.add("hidden");
+    el.pageEnsaio.classList.add("hidden");
+
     if (page === "repertorio") {
       el.navRepertorio.classList.add("nav-active");
-      el.navCulto.classList.remove("nav-active");
       el.pageRepertorio.classList.remove("hidden");
-      el.pageCulto.classList.add("hidden");
-    } else {
+    } else if (page === "culto") {
       el.navCulto.classList.add("nav-active");
-      el.navRepertorio.classList.remove("nav-active");
       el.pageCulto.classList.remove("hidden");
-      el.pageRepertorio.classList.add("hidden");
       renderCultoSongs();
+    } else if (page === "ensaio") {
+      el.navEnsaio.classList.add("nav-active");
+      el.pageEnsaio.classList.remove("hidden");
+      renderEnsaioSongs();
     }
   }
 
   // ===================== SUPABASE =====================
   async function loadSongs() {
     if (!window.supabaseClient) return;
-    // Agora puxamos também a cifra_url na lista inicial para o WhatsApp ter acesso rápido
     const { data, error } = await window.supabaseClient
-      .from("songs").select("id, title, title_norm, on_setlist, cifra_url").order("title", { ascending: true });
+      .from("songs").select("id, title, title_norm, on_setlist, on_rehearsal, cifra_url, youtube_url").order("title", { ascending: true });
     if (error) return;
     state.songs = data || [];
     await loadAllKeys();
@@ -265,9 +334,10 @@
       return { id: ex?.id || null, member_name: name, key: ex?.key || "" };
     });
 
-    const { data: songData } = await window.supabaseClient.from("songs").select("lyrics, cifra_url").eq("id", songId).single();
+    const { data: songData } = await window.supabaseClient.from("songs").select("lyrics, cifra_url, youtube_url").eq("id", songId).single();
     el.lyricsField.value = songData?.lyrics || "";
     if (el.cifraUrlField) el.cifraUrlField.value = songData?.cifra_url || "";
+    if (el.youtubeUrlField) el.youtubeUrlField.value = songData?.youtube_url || "";
 
     el.detailTitle.textContent = state.selectedSong.title;
     switchDetailTab("keys");
@@ -317,6 +387,7 @@
     closeModal(el.detailModal);
     renderSongs();
     if(!el.pageCulto.classList.contains("hidden")) renderCultoSongs();
+    if(!el.pageEnsaio.classList.contains("hidden")) renderEnsaioSongs();
     showToast("Tons salvos!", "success");
   }
 
@@ -367,10 +438,13 @@
     el.saveAllKeys.addEventListener("click",   saveAllKeys);
     el.saveLyrics.addEventListener("click",    saveLyrics);
     el.deleteSongBtn.addEventListener("click", deleteSong);
+    
+    // NAVEGAÇÃO
     el.navRepertorio.addEventListener("click", () => switchPage("repertorio"));
     el.navCulto.addEventListener("click", () => switchPage("culto"));
+    el.navEnsaio.addEventListener("click", () => switchPage("ensaio"));
     
-    // BOTÃO DE LIMPAR LISTA
+    // ================== CULTO ACTIONS ==================
     el.clearSetlistBtn.addEventListener("click", async () => {
       const ok = await showConfirm("Remover todas as músicas do culto?");
       if (!ok) return;
@@ -381,42 +455,63 @@
       showToast("Lista limpa!", "success");
     });
 
-    // BOTÃO DE COMPARTILHAR NO WHATSAPP (Agora com link e cifra)
     el.shareSetlistBtn.addEventListener("click", () => {
       const cultoSongs = state.songs.filter(s => s.on_setlist === true);
-      if (cultoSongs.length === 0) {
-        showToast("O setlist está vazio!");
-        return;
-      }
-      
+      if (cultoSongs.length === 0) { showToast("O setlist está vazio!"); return; }
       let text = "🔥 *Setlist do Culto:*\n\n";
-      
       cultoSongs.forEach((song, index) => {
-        // Pega o tom principal
         const cached = state.keysCache[song.id] || [];
         let mainKey = "";
         const pastorKey = cached.find(k => k.member_name.includes("Pastor") && k.key);
         const anyKey = cached.find(k => k.key);
-        if (pastorKey) mainKey = ` (${pastorKey.key})`;
-        else if (anyKey) mainKey = ` (${anyKey.key})`;
-
-        // Cria ou pega o link da cifra
+        if (pastorKey) mainKey = ` (${pastorKey.key})`; else if (anyKey) mainKey = ` (${anyKey.key})`;
         const cifraLink = song.cifra_url || getDefaultCifraSearchUrl(song.title);
         
-        text += `${index + 1}. *${song.title}*${mainKey}\n🎸 Cifra: ${cifraLink}\n\n`;
+        text += `${index + 1}. *${song.title}*${mainKey}\n🎸 Cifra: ${cifraLink}\n`;
+        if (song.youtube_url) text += `▶️ Ouvir: ${song.youtube_url}\n`;
+        text += `\n`;
       });
-      
-      // Cria o link direto para a página do Culto no App
-      // Pega a URL atual sem parâmetros, e adiciona ?tab=culto
       const appUrl = window.location.origin + window.location.pathname + "?tab=culto";
       text += `📱 *Ver direto no App:*\n${appUrl}`;
-      
-      const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
-      window.open(whatsappUrl, "_blank");
+      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, "_blank");
+    });
+
+    // ================== ENSAIO ACTIONS ==================
+    el.clearEnsaioBtn.addEventListener("click", async () => {
+      const ok = await showConfirm("Remover todas as músicas da lista de ensaio?");
+      if (!ok) return;
+      await window.supabaseClient.from("songs").update({ on_rehearsal: false }).eq("on_rehearsal", true);
+      state.songs.forEach(s => s.on_rehearsal = false);
+      renderEnsaioSongs();
+      applyFilter(el.searchInput.value);
+      showToast("Lista de ensaio limpa!", "success");
+    });
+
+    el.shareEnsaioBtn.addEventListener("click", () => {
+      const ensaioSongs = state.songs.filter(s => s.on_rehearsal === true);
+      if (ensaioSongs.length === 0) { showToast("A lista de ensaio está vazia!"); return; }
+      let text = "🎧 *Músicas para o Ensaio:*\n\n";
+      ensaioSongs.forEach((song, index) => {
+        const cached = state.keysCache[song.id] || [];
+        let mainKey = "";
+        const pastorKey = cached.find(k => k.member_name.includes("Pastor") && k.key);
+        const anyKey = cached.find(k => k.key);
+        if (pastorKey) mainKey = ` (${pastorKey.key})`; else if (anyKey) mainKey = ` (${anyKey.key})`;
+        const cifraLink = song.cifra_url || getDefaultCifraSearchUrl(song.title);
+        
+        text += `${index + 1}. *${song.title}*${mainKey}\n🎸 Cifra: ${cifraLink}\n`;
+        if (song.youtube_url) text += `▶️ Referência: ${song.youtube_url}\n`;
+        text += `\n`;
+      });
+      const appUrl = window.location.origin + window.location.pathname + "?tab=ensaio";
+      text += `📱 *Ver direto no App:*\n${appUrl}`;
+      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, "_blank");
     });
 
     if (el.openCifraBtn) el.openCifraBtn.addEventListener("click", openCifra);
     if (el.saveCifraBtn) el.saveCifraBtn.addEventListener("click", saveCifraUrl);
+    if (el.openYoutubeBtn) el.openYoutubeBtn.addEventListener("click", openYoutube);
+    if (el.saveYoutubeBtn) el.saveYoutubeBtn.addEventListener("click", saveYoutubeUrl);
 
     document.querySelectorAll("[data-close]").forEach(btn => btn.addEventListener("click", () => closeModal(document.getElementById(btn.dataset.close))));
     [el.songModal, el.importModal, el.detailModal].forEach(m => m.addEventListener("click", e => { if (e.target === m) closeModal(m); }));
@@ -426,10 +521,11 @@
     bindEvents(); 
     await loadSongs(); 
     
-    // VERIFICA SE A URL TEM "?tab=culto" PARA ABRIR DIRETO NO SETLIST
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get("tab") === "culto") {
       switchPage("culto");
+    } else if (urlParams.get("tab") === "ensaio") {
+      switchPage("ensaio");
     }
   }
 
