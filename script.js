@@ -36,6 +36,7 @@
     detailTitle:    document.getElementById("detailTitle"),
     keyFields:      document.getElementById("keyFields"),
     lyricsField:    document.getElementById("lyricsField"),
+    notesField:     document.getElementById("notesField"), // ANOTAÇÕES
     saveAllKeys:    document.getElementById("saveAllKeys"),
     saveLyrics:     document.getElementById("saveLyrics"),
     deleteSongBtn:  document.getElementById("deleteSongBtn"),
@@ -44,7 +45,6 @@
     paneKeys:       document.getElementById("paneKeys"),
     paneLyrics:     document.getElementById("paneLyrics"),
     
-    // NAVEGAÇÃO
     navRepertorio:  document.getElementById("navRepertorio"),
     navCulto:       document.getElementById("navCulto"),
     navEnsaio:      document.getElementById("navEnsaio"),
@@ -52,13 +52,11 @@
     pageCulto:      document.getElementById("pageCulto"),
     pageEnsaio:     document.getElementById("pageEnsaio"),
     
-    // LISTAS
     cultoSongsList: document.getElementById("cultoSongsList"),
     cultoEmptyState:document.getElementById("cultoEmptyState"),
     ensaioSongsList:document.getElementById("ensaioSongsList"),
     ensaioEmptyState:document.getElementById("ensaioEmptyState"),
     
-    // BOTÕES DE AÇÃO
     clearSetlistBtn:document.getElementById("clearSetlistBtn"),
     shareSetlistBtn:document.getElementById("shareSetlistBtn"),
     clearEnsaioBtn: document.getElementById("clearEnsaioBtn"),
@@ -189,16 +187,14 @@
 
     info.append(title, membersInfo);
 
-    // Container para os dois botões (Ensaios e Culto)
     const actionsBlock = document.createElement("div");
     actionsBlock.style.display = "flex";
     actionsBlock.style.gap = "4px";
 
-    // Botão ENSAIO (Fone)
     const ensaioBtn = document.createElement("button");
     ensaioBtn.className = `star-btn ${song.on_rehearsal ? "active" : ""}`;
     ensaioBtn.innerHTML = `<span class="material-symbols-outlined">${song.on_rehearsal ? "headphones" : "headset_off"}</span>`;
-    if(song.on_rehearsal) ensaioBtn.style.color = "#6B6B66"; // Cor diferenciada
+    if(song.on_rehearsal) ensaioBtn.style.color = "#6B6B66";
     
     ensaioBtn.addEventListener("click", async (e) => {
       e.stopPropagation();
@@ -212,7 +208,6 @@
       if(!el.pageEnsaio.classList.contains("hidden")) renderEnsaioSongs();
     });
 
-    // Botão CULTO (Estrela)
     const starBtn = document.createElement("button");
     starBtn.className = `star-btn ${song.on_setlist ? "active" : ""}`;
     starBtn.innerHTML = `<span class="material-symbols-outlined">${song.on_setlist ? "star" : "star_border"}</span>`;
@@ -241,9 +236,7 @@
   function renderSongs() {
     el.songsList.innerHTML = "";
     el.emptyState.style.display = state.filteredSongs.length > 0 ? "none" : "block";
-    state.filteredSongs.forEach((song) => {
-      el.songsList.appendChild(createSongCard(song));
-    });
+    state.filteredSongs.forEach((song) => { el.songsList.appendChild(createSongCard(song)); });
   }
 
   function renderCultoSongs() {
@@ -293,7 +286,7 @@
   async function loadSongs() {
     if (!window.supabaseClient) return;
     const { data, error } = await window.supabaseClient
-      .from("songs").select("id, title, title_norm, on_setlist, on_rehearsal, cifra_url, youtube_url").order("title", { ascending: true });
+      .from("songs").select("id, title, title_norm, on_setlist, on_rehearsal, cifra_url, youtube_url, notes").order("title", { ascending: true });
     if (error) return;
     state.songs = data || [];
     await loadAllKeys();
@@ -334,10 +327,11 @@
       return { id: ex?.id || null, member_name: name, key: ex?.key || "" };
     });
 
-    const { data: songData } = await window.supabaseClient.from("songs").select("lyrics, cifra_url, youtube_url").eq("id", songId).single();
+    const { data: songData } = await window.supabaseClient.from("songs").select("lyrics, cifra_url, youtube_url, notes").eq("id", songId).single();
     el.lyricsField.value = songData?.lyrics || "";
-    if (el.cifraUrlField) el.cifraUrlField.value = songData?.cifra_url || "";
-    if (el.youtubeUrlField) el.youtubeUrlField.value = songData?.youtube_url || "";
+    el.cifraUrlField.value = songData?.cifra_url || "";
+    el.youtubeUrlField.value = songData?.youtube_url || "";
+    el.notesField.value = songData?.notes || "";
 
     el.detailTitle.textContent = state.selectedSong.title;
     switchDetailTab("keys");
@@ -392,9 +386,12 @@
   }
 
   async function saveLyrics() {
-    await window.supabaseClient.from("songs").update({ lyrics: el.lyricsField.value.trim() || null }).eq("id", state.selectedSong.id);
+    await window.supabaseClient.from("songs").update({ 
+      lyrics: el.lyricsField.value.trim() || null,
+      notes: el.notesField.value.trim() || null
+    }).eq("id", state.selectedSong.id);
     closeModal(el.detailModal);
-    showToast("Letra salva!", "success");
+    showToast("Dados salvos!", "success");
   }
 
   async function deleteSong() {
@@ -439,12 +436,11 @@
     el.saveLyrics.addEventListener("click",    saveLyrics);
     el.deleteSongBtn.addEventListener("click", deleteSong);
     
-    // NAVEGAÇÃO
     el.navRepertorio.addEventListener("click", () => switchPage("repertorio"));
     el.navCulto.addEventListener("click", () => switchPage("culto"));
     el.navEnsaio.addEventListener("click", () => switchPage("ensaio"));
     
-    // ================== CULTO ACTIONS ==================
+    // AÇÕES CULTO
     el.clearSetlistBtn.addEventListener("click", async () => {
       const ok = await showConfirm("Remover todas as músicas do culto?");
       if (!ok) return;
@@ -469,6 +465,7 @@
         
         text += `${index + 1}. *${song.title}*${mainKey}\n🎸 Cifra: ${cifraLink}\n`;
         if (song.youtube_url) text += `▶️ Ouvir: ${song.youtube_url}\n`;
+        if (song.notes) text += `📝 Notas: ${song.notes}\n`;
         text += `\n`;
       });
       const appUrl = window.location.origin + window.location.pathname + "?tab=culto";
@@ -476,7 +473,7 @@
       window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, "_blank");
     });
 
-    // ================== ENSAIO ACTIONS ==================
+    // AÇÕES ENSAIO
     el.clearEnsaioBtn.addEventListener("click", async () => {
       const ok = await showConfirm("Remover todas as músicas da lista de ensaio?");
       if (!ok) return;
@@ -501,6 +498,7 @@
         
         text += `${index + 1}. *${song.title}*${mainKey}\n🎸 Cifra: ${cifraLink}\n`;
         if (song.youtube_url) text += `▶️ Referência: ${song.youtube_url}\n`;
+        if (song.notes) text += `📝 Notas: ${song.notes}\n`;
         text += `\n`;
       });
       const appUrl = window.location.origin + window.location.pathname + "?tab=ensaio";
