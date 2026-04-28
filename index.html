@@ -134,7 +134,7 @@
       <h3 id="detailTitle">Detalhes</h3>
       <div class="tabs">
         <button id="tabKeys" class="tab-btn tab-active">Tons</button>
-        <button id="tabLyrics" class="tab-btn">Letra & Links</button>
+        <button id="tabLyrics" class="tab-btn">Letra, Links & Notas</button>
       </div>
       
       <div id="paneKeys">
@@ -146,15 +146,16 @@
       </div>
       
       <div id="paneLyrics" class="hidden">
-        <textarea id="lyricsField" class="input-textarea lyrics-textarea" placeholder="Cole a letra..."></textarea>
-        
+        <label class="input-label">Anotações (Ensaio / Culto)</label>
+        <textarea id="notesField" class="input-textarea" rows="2" placeholder="Ex: Fazer o final 2x, bateria entra no refrão..." style="margin-bottom: 16px;"></textarea>
+
         <div class="cifra-row" style="margin-bottom: 8px;">
           <div style="flex:1;">
             <input id="cifraUrlField" class="input-text" type="url" placeholder="Link da cifra..." style="margin-bottom: 0;" />
           </div>
           <div class="cifra-actions" style="display: flex; gap: 8px;">
             <button id="openCifraBtn" class="btn btn-soft" title="Buscar Cifra"><span class="material-symbols-outlined">search</span></button>
-            <button id="saveCifraBtn" class="btn btn-primary"><span class="material-symbols-outlined">save</span></button>
+            <button id="saveCifraBtn" class="btn btn-primary" title="Salvar Link"><span class="material-symbols-outlined">save</span></button>
           </div>
         </div>
 
@@ -164,11 +165,14 @@
           </div>
           <div class="cifra-actions" style="display: flex; gap: 8px;">
             <button id="openYoutubeBtn" class="btn btn-soft" title="Buscar no YouTube"><span class="material-symbols-outlined">play_circle</span></button>
-            <button id="saveYoutubeBtn" class="btn btn-primary"><span class="material-symbols-outlined">save</span></button>
+            <button id="saveYoutubeBtn" class="btn btn-primary" title="Salvar YouTube"><span class="material-symbols-outlined">save</span></button>
           </div>
         </div>
 
-        <button id="saveLyrics" class="btn btn-primary full">Salvar Letra</button>
+        <label class="input-label">Letra da Música</label>
+        <textarea id="lyricsField" class="input-textarea lyrics-textarea" placeholder="Cole a letra..."></textarea>
+        
+        <button id="saveLyrics" class="btn btn-primary full" style="margin-top:12px;">Salvar Letra e Dados</button>
       </div>
     </div>
   </div>
