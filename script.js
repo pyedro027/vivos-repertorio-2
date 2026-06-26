@@ -70,6 +70,7 @@
     saveYoutubeBtn: document.getElementById("saveYoutubeBtn")
   };
 
+  // ===================== UTILS =====================
   function normalizeTitle(title, stripNumberPrefix = false) {
     let value = (title || "").trim();
     if (stripNumberPrefix) value = value.replace(/^\s*\d+[\.\-\)]\s*/, "");
@@ -160,6 +161,7 @@
     showToast("YouTube salvo!", "success");
   }
 
+  // ===================== RENDERIZAÇÃO =====================
   function createSongCard(song) {
     const card = document.createElement("div");
     card.className = "song-card";
@@ -288,6 +290,7 @@
     }
   }
 
+  // ===================== SUPABASE =====================
   async function loadSongs() {
     const localSongs = await window.db.songs.orderBy('title').toArray();
     state.songs = localSongs || [];
@@ -328,6 +331,7 @@
     showToast("Música adicionada!", "success");
   }
 
+  // ===================== DETALHES =====================
   async function openDetail(songId) {
     state.selectedSong = state.songs.find(s => s.id === songId);
     if (!state.selectedSong) return;
@@ -467,6 +471,7 @@
     showToast("Músicas importadas!", "success");
   }
 
+  // ===================== EVENTOS =====================
   function bindEvents() {
     el.searchInput.addEventListener("input", debounce(e => applyFilter(e.target.value), 300));
     el.addSongBtn.addEventListener("click",    () => openModal(el.songModal, el.newSongTitle));
@@ -483,6 +488,7 @@
     el.navCulto.addEventListener("click", () => switchPage("culto"));
     el.navEnsaio.addEventListener("click", () => switchPage("ensaio"));
     
+    // AÇÕES CULTO
     el.clearSetlistBtn.addEventListener("click", async () => {
       const ok = await showConfirm("Remover todas as músicas do culto?");
       if (!ok) return;
@@ -521,6 +527,7 @@
       window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, "_blank");
     });
 
+    // AÇÕES ENSAIO
     el.clearEnsaioBtn.addEventListener("click", async () => {
       const ok = await showConfirm("Remover todas as músicas da lista de ensaio?");
       if (!ok) return;
