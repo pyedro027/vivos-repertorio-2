@@ -574,8 +574,21 @@
        window.SyncEngine.setupConnectivityListeners();
     }
 
+    // Aguarda recuperação do banco, caso esteja rodando (para evitar tentar ler enquanto apaga)
+    if (window.dbRecoveryPromise) {
+      try {
+        await window.dbRecoveryPromise;
+      } catch (e) {
+        console.error("Erro capturado do dbRecoveryPromise:", e);
+      }
+    }
+
     // Load from local DB immediately (mostra o que já tiver salvo localmente, sem esperar a rede)
-    await loadSongs(); 
+    try {
+      await loadSongs(); 
+    } catch (err) {
+      console.error("Erro no loadSongs (banco pode estar aguardando recriação):", err);
+    }
 
     // Dispara a sincronização inicial se já estiver online.
     // O listener de conectividade só reage a uma TRANSIÇÃO pra online (evento 'online'),
