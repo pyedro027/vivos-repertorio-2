@@ -400,16 +400,7 @@
     
     for (const p of payloads) {
        await window.db.song_keys.put(p);
-       // Instead of upsert which we can't easily emulate with standard create/update offline operation,
-       // we send an update to Supabase, but since Supabase has an upsert feature, we might need a special handler in sync.js or just standard insert if we know it doesn't exist.
-       // However, the prompt specifies: "song_keys.id: uuid... (NÃO é PK composta - id próprio)"
-       // If it's a UUID, we can just save it. But does the server know to upsert by song_id + member_name?
-       // Let's just enqueue an upsert operation.
        await window.SyncEngine.enqueueOperation("song_keys", "update", p.id, p);
-       // Wait, `sync.js` doesn't handle 'upsert'. We can modify sync.js to handle upsert if operation === 'upsert'
-       // But wait, the standard approach: since it's an offline first, if it exists locally we could use 'update', else 'create'.
-       // But actually, just doing an update and if it fails, doing a create, or just adding "upsert" to sync.js.
-       // I'll leave it as update and modify sync.js to do an upsert if needed, or just insert if it's new. Let's just use update for now. 
     }
     
     state.keysCache[state.selectedSong.id] = state.selectedKeys.filter(k => k.key).map(k => ({ member_name: k.member_name, key: k.key }));
@@ -583,8 +574,21 @@
        window.SyncEngine.setupConnectivityListeners();
     }
 
-    // Load from local DB immediately
+    // Load from local DB immediately (mostra o que já tiver salvo localmente, sem esperar a rede)
     await loadSongs(); 
+
+    // Dispara a sincronização inicial se já estiver online.
+    // O listener de conectividade só reage a uma TRANSIÇÃO pra online (evento 'online'),
+    // então um app aberto direto já conectado (1ª visita, celular, outra aba) nunca
+    // disparava o fullSync automaticamente — por isso o banco ficava vazio até alguém
+    // chamar SyncEngine.fullSync() manualmente.
+    if (window.SyncEngine && navigator.onLine) {
+      window.SyncEngine.fullSync().catch(err => {
+        console.error("Erro na sincronização inicial:", err);
+      });
+      // loadSongs() roda de novo automaticamente quando o sync terminar,
+      // via o listener 'vivos-sync-completed' já registrado acima.
+    }
     
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get("tab") === "culto") {
