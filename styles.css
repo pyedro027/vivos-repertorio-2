@@ -67,7 +67,12 @@ body {
   color: var(--on-surface-muted);
 }
 
-.search-input {
+/* Especificidade "input.search-input" (em vez de só ".search-input") é
+   proposital: garante que o padding-left abaixo sempre vença o padding
+   genérico de ".input-text, .input-textarea" definido mais abaixo no
+   arquivo, que tem a mesma especificidade e senão sobrescreveria o espaço
+   reservado pro ícone da lupa (o texto ficava por baixo do ícone). */
+input.search-input {
   width: 100%;
   padding: 14px 16px 14px 44px;
   border-radius: var(--radius-btn);
