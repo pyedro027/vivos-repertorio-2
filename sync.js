@@ -1,6 +1,15 @@
 window.SyncEngine = (function() {
   const MAX_ATTEMPTS = 5;
 
+  // Guards processSyncQueue()/fullSync() against overlapping runs (e.g. the
+  // user toggling several stars quickly, each enqueueing an operation that
+  // tries to sync immediately). Without this, two concurrent fullSync() calls
+  // could race their clear()+bulkAdd() and wipe out a song that only exists
+  // locally so far. If something else asks to sync while one is already
+  // running, we just remember to run once more right after it finishes.
+  let syncInFlight = false;
+  let rerunRequested = false;
+
   function isOnline() {
     return navigator.onLine;
   }
@@ -59,12 +68,29 @@ window.SyncEngine = (function() {
     updateSyncStatus('offline', pendings);
   }
 
-  async function processSyncQueue() {
+  async function withSyncLock(fn) {
+    if (syncInFlight) {
+      rerunRequested = true;
+      return;
+    }
+    syncInFlight = true;
+    try {
+      await fn();
+    } finally {
+      syncInFlight = false;
+      if (rerunRequested) {
+        rerunRequested = false;
+        processSyncQueue();
+      }
+    }
+  }
+
+  async function processSyncQueueImpl() {
     if (!isOnline() || !window.supabaseClient) return;
 
     const pendings = await window.db.sync_queue.where('status').equals('pending').sortBy('timestamp');
     if (pendings.length === 0) {
-       fullSync();
+       await fullSyncImpl();
        return;
     }
 
@@ -119,28 +145,42 @@ window.SyncEngine = (function() {
 
     const errors = await window.db.sync_queue.where('status').equals('error').count();
     updateSyncStatus('synced', 0, errors);
-    
+
     if (processedAny || pendings.length > 0) {
-      fullSync();
+      await fullSyncImpl();
     }
   }
 
-  async function fullSync() {
+  async function fullSyncImpl() {
     if (!isOnline() || !window.supabaseClient) return;
 
     const { data: songsData, error: songsErr } = await window.supabaseClient.from("songs").select("*");
     if (!songsErr && songsData) {
-       await window.db.songs.clear();
-       await window.db.songs.bulkAdd(songsData);
+       // clear()+bulkAdd() run inside a single transaction so a failed/interrupted
+       // bulkAdd can't leave the local table empty (no partial wipe without repopulate).
+       await window.db.transaction('rw', window.db.songs, async () => {
+         await window.db.songs.clear();
+         await window.db.songs.bulkAdd(songsData);
+       });
     }
-    
+
     const { data: keysData, error: keysErr } = await window.supabaseClient.from("song_keys").select("*");
     if (!keysErr && keysData) {
-       await window.db.song_keys.clear();
-       await window.db.song_keys.bulkAdd(keysData);
+       await window.db.transaction('rw', window.db.song_keys, async () => {
+         await window.db.song_keys.clear();
+         await window.db.song_keys.bulkAdd(keysData);
+       });
     }
-    
+
     window.dispatchEvent(new Event('vivos-sync-completed'));
+  }
+
+  function processSyncQueue() {
+    return withSyncLock(processSyncQueueImpl);
+  }
+
+  function fullSync() {
+    return withSyncLock(fullSyncImpl);
   }
 
   function setupConnectivityListeners() {

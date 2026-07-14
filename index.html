@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Vivos com Cristo — Repertório</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -62,7 +62,7 @@
       <button id="shareSetlistBtn" class="btn btn-primary" style="flex: 3;">
         <span class="material-symbols-outlined">share</span> Enviar Setlist
       </button>
-      <button id="clearSetlistBtn" class="btn btn-danger" style="flex: 1; padding: 14px 0;" title="Limpar Lista">
+      <button id="clearSetlistBtn" class="btn btn-danger" style="flex: 1; padding: 14px 0;" title="Limpar Lista" aria-label="Limpar Lista">
         <span class="material-symbols-outlined">delete_sweep</span>
       </button>
     </section>
@@ -86,7 +86,7 @@
       <button id="shareEnsaioBtn" class="btn btn-primary" style="flex: 3; background: #6B6B66;">
         <span class="material-symbols-outlined">share</span> Enviar Músicas
       </button>
-      <button id="clearEnsaioBtn" class="btn btn-danger" style="flex: 1; padding: 14px 0;" title="Limpar Ensaios">
+      <button id="clearEnsaioBtn" class="btn btn-danger" style="flex: 1; padding: 14px 0;" title="Limpar Ensaios" aria-label="Limpar Ensaios">
         <span class="material-symbols-outlined">delete_sweep</span>
       </button>
     </section>
@@ -116,7 +116,7 @@
 
   <div id="songModal" class="modal hidden">
     <div class="modal-content">
-      <button class="icon-close" data-close="songModal"><span class="material-symbols-outlined">close</span></button>
+      <button class="icon-close" data-close="songModal" aria-label="Fechar"><span class="material-symbols-outlined">close</span></button>
       <h3>Nova música</h3>
       <label class="input-label">Título</label>
       <input id="newSongTitle" class="input-text" type="text" placeholder="Ex: Oceans..." />
@@ -126,7 +126,7 @@
 
   <div id="importModal" class="modal hidden">
     <div class="modal-content">
-      <button class="icon-close" data-close="importModal"><span class="material-symbols-outlined">close</span></button>
+      <button class="icon-close" data-close="importModal" aria-label="Fechar"><span class="material-symbols-outlined">close</span></button>
       <h3>Importar lista</h3>
       <textarea id="bulkText" class="input-textarea" rows="8" placeholder="Cole uma música por linha..."></textarea>
       <label class="checkbox-wrap">
@@ -139,7 +139,7 @@
 
   <div id="detailModal" class="modal hidden">
     <div class="modal-content large">
-      <button class="icon-close" data-close="detailModal"><span class="material-symbols-outlined">close</span></button>
+      <button class="icon-close" data-close="detailModal" aria-label="Fechar"><span class="material-symbols-outlined">close</span></button>
       <h3 id="detailTitle">Detalhes</h3>
       <div class="tabs">
         <button id="tabKeys" class="tab-btn tab-active">Tons</button>
@@ -150,7 +150,7 @@
         <div id="keyFields" class="key-grid"></div>
         <div class="detail-actions">
           <button id="saveAllKeys" class="btn btn-primary full">Salvar Tons</button>
-          <button id="deleteSongBtn" class="btn btn-danger icon-only" title="Excluir"><span class="material-symbols-outlined">delete</span></button>
+          <button id="deleteSongBtn" class="btn btn-danger icon-only" title="Excluir" aria-label="Excluir música"><span class="material-symbols-outlined">delete</span></button>
         </div>
       </div>
       
@@ -163,8 +163,8 @@
             <input id="cifraUrlField" class="input-text" type="url" placeholder="Link da cifra..." style="margin-bottom: 0;" />
           </div>
           <div class="cifra-actions" style="display: flex; gap: 8px;">
-            <button id="openCifraBtn" class="btn btn-soft" title="Buscar Cifra"><span class="material-symbols-outlined">search</span></button>
-            <button id="saveCifraBtn" class="btn btn-primary" title="Salvar Link"><span class="material-symbols-outlined">save</span></button>
+            <button id="openCifraBtn" class="btn btn-soft" title="Buscar Cifra" aria-label="Buscar cifra"><span class="material-symbols-outlined">search</span></button>
+            <button id="saveCifraBtn" class="btn btn-primary" title="Salvar Link" aria-label="Salvar link da cifra"><span class="material-symbols-outlined">save</span></button>
           </div>
         </div>
 
@@ -173,8 +173,8 @@
             <input id="youtubeUrlField" class="input-text" type="url" placeholder="Link do YouTube..." style="margin-bottom: 0;" />
           </div>
           <div class="cifra-actions" style="display: flex; gap: 8px;">
-            <button id="openYoutubeBtn" class="btn btn-soft" title="Buscar no YouTube"><span class="material-symbols-outlined">play_circle</span></button>
-            <button id="saveYoutubeBtn" class="btn btn-primary" title="Salvar YouTube"><span class="material-symbols-outlined">save</span></button>
+            <button id="openYoutubeBtn" class="btn btn-soft" title="Buscar no YouTube" aria-label="Buscar no YouTube"><span class="material-symbols-outlined">play_circle</span></button>
+            <button id="saveYoutubeBtn" class="btn btn-primary" title="Salvar YouTube" aria-label="Salvar link do YouTube"><span class="material-symbols-outlined">save</span></button>
           </div>
         </div>
 
@@ -196,19 +196,26 @@
     </div>
   </div>
 
-  <div id="installBanner" class="install-banner hidden">
-    <span>Instale o app para acesso offline!</span>
-    <button id="installBtn" class="btn btn-primary" style="padding: 8px 12px; flex: none;">Instalar</button>
-    <button id="closeInstallBtn" class="icon-close"><span class="material-symbols-outlined">close</span></button>
+  <div id="installScreen" class="install-screen hidden">
+    <div class="install-screen-content">
+      <img src="assets/logo.png" alt="Logo" class="install-screen-logo" onerror="this.style.display='none'">
+      <h2>Instale o app</h2>
+      <p>Instale o Repertório na tela inicial do seu celular para abrir mais rápido e ter acesso mesmo sem internet.</p>
+      <button id="installScreenBtn" class="btn btn-primary full">
+        <span class="material-symbols-outlined">install_mobile</span> Instalar App
+      </button>
+      <p id="installScreenHint" class="install-screen-hint hidden"></p>
+      <button id="installScreenSkipBtn" class="btn btn-soft full">Continuar sem instalar</button>
+    </div>
   </div>
-  
+
   <div id="updateBanner" class="update-banner hidden">
     <span>Nova versão disponível!</span>
     <button id="updateBtn" class="btn btn-primary" style="padding: 8px 12px; flex: none;">Atualizar</button>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://unpkg.com/dexie@4/dist/dexie.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.3/dist/umd/supabase.js" integrity="sha384-sihuiVHG7vyEIuePVbLI4QpHu1dbhCZe4Zqp0FuqnFeEnyIhF3koyXoBZyfbFsYs" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/dexie@4.4.4/dist/dexie.min.js" integrity="sha384-Nxyqnmcibp3ktM/W06mzRDHx9uhqlYlf+Dd/cItNNr5LZnBWLvAsoJB2XQV6yg2a" crossorigin="anonymous"></script>
   <script>
     window.SUPABASE_URL = "https://wkjbhumyexkbuabklenj.supabase.co";
     window.SUPABASE_ANON_KEY = "sb_publishable_vY4R-ChreoZ4IX7dNkd0Bg_psvzEx7G";
@@ -240,28 +247,55 @@
       });
     }
 
-    // Install Prompt
-    let deferredPrompt;
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      document.getElementById('installBanner').classList.remove('hidden');
-    });
+    // Tela cheia de instalação: cobre o app inteiro toda vez que o site é
+    // aberto fora do modo instalado (standalone). Some quando o usuário
+    // instala ou escolhe "Continuar sem instalar" (só para esta sessão —
+    // se ele abrir de novo sem ter instalado, a tela volta a aparecer).
+    (function installScreenFlow() {
+      const installScreen = document.getElementById('installScreen');
+      const installScreenBtn = document.getElementById('installScreenBtn');
+      const installScreenSkipBtn = document.getElementById('installScreenSkipBtn');
+      const installScreenHint = document.getElementById('installScreenHint');
 
-    document.getElementById('installBtn')?.addEventListener('click', async () => {
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') {
-          document.getElementById('installBanner').classList.add('hidden');
-        }
-        deferredPrompt = null;
+      function isStandalone() {
+        return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
       }
-    });
-    
-    document.getElementById('closeInstallBtn')?.addEventListener('click', () => {
-      document.getElementById('installBanner').classList.add('hidden');
-    });
+      function isIos() {
+        return /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+      }
+      function dismissInstallScreen() {
+        installScreen.classList.add('hidden');
+      }
+
+      if (!isStandalone()) {
+        installScreen.classList.remove('hidden');
+      }
+
+      let deferredPrompt;
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+      });
+
+      window.addEventListener('appinstalled', dismissInstallScreen);
+
+      installScreenBtn.addEventListener('click', async () => {
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          deferredPrompt = null;
+          if (outcome === 'accepted') dismissInstallScreen();
+        } else if (isIos()) {
+          installScreenHint.textContent = 'No Safari: toque no ícone de compartilhar (□↑) e depois em "Adicionar à Tela de Início".';
+          installScreenHint.classList.remove('hidden');
+        } else {
+          installScreenHint.textContent = 'Seu navegador não oferece instalação automática aqui. Procure "Instalar app" ou "Adicionar à tela inicial" no menu do navegador.';
+          installScreenHint.classList.remove('hidden');
+        }
+      });
+
+      installScreenSkipBtn.addEventListener('click', dismissInstallScreen);
+    })();
   </script>
 </body>
 </html>

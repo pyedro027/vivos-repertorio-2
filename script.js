@@ -161,17 +161,22 @@
     showToast("YouTube salvo!", "success");
   }
 
+  // Tom "principal" exibido no card/badge e nos textos de compartilhamento:
+  // prioriza o tom do Pastor, senão o primeiro tom preenchido que encontrar.
+  function getMainKey(cached) {
+    const pastorKey = cached.find(k => k.member_name.includes("Pastor") && k.key);
+    if (pastorKey) return pastorKey.key;
+    const anyKey = cached.find(k => k.key);
+    return anyKey ? anyKey.key : "";
+  }
+
   // ===================== RENDERIZAÇÃO =====================
   function createSongCard(song) {
     const card = document.createElement("div");
     card.className = "song-card";
 
     const cached = state.keysCache[song.id] || [];
-    let mainKey = "♪";
-    const pastorKey = cached.find(k => k.member_name.includes("Pastor") && k.key);
-    const anyKey = cached.find(k => k.key);
-    if (pastorKey) mainKey = pastorKey.key;
-    else if (anyKey) mainKey = anyKey.key;
+    const mainKey = getMainKey(cached) || "♪";
 
     const badge = document.createElement("div");
     badge.className = "key-badge";
@@ -198,36 +203,40 @@
     const ensaioBtn = document.createElement("button");
     ensaioBtn.className = `star-btn ${song.on_rehearsal ? "active" : ""}`;
     ensaioBtn.innerHTML = `<span class="material-symbols-outlined">${song.on_rehearsal ? "headphones" : "headset_off"}</span>`;
+    ensaioBtn.setAttribute("aria-label", song.on_rehearsal ? "Remover do ensaio" : "Adicionar ao ensaio");
     if(song.on_rehearsal) ensaioBtn.style.color = "#6B6B66";
-    
+
     ensaioBtn.addEventListener("click", async (e) => {
       e.stopPropagation();
       const newVal = !song.on_rehearsal;
       ensaioBtn.classList.toggle("active", newVal);
       ensaioBtn.innerHTML = `<span class="material-symbols-outlined">${newVal ? "headphones" : "headset_off"}</span>`;
+      ensaioBtn.setAttribute("aria-label", newVal ? "Remover do ensaio" : "Adicionar ao ensaio");
       ensaioBtn.style.color = newVal ? "#6B6B66" : "";
       song.on_rehearsal = newVal;
-      
+
       await window.db.songs.update(song.id, { on_rehearsal: newVal });
       await window.SyncEngine.enqueueOperation("songs", "update", song.id, { on_rehearsal: newVal });
-      
+
       if(!el.pageEnsaio.classList.contains("hidden")) renderEnsaioSongs();
     });
 
     const starBtn = document.createElement("button");
     starBtn.className = `star-btn ${song.on_setlist ? "active" : ""}`;
     starBtn.innerHTML = `<span class="material-symbols-outlined">${song.on_setlist ? "star" : "star_border"}</span>`;
-    
+    starBtn.setAttribute("aria-label", song.on_setlist ? "Remover do culto" : "Adicionar ao culto");
+
     starBtn.addEventListener("click", async (e) => {
       e.stopPropagation();
       const newVal = !song.on_setlist;
       starBtn.classList.toggle("active", newVal);
       starBtn.innerHTML = `<span class="material-symbols-outlined">${newVal ? "star" : "star_border"}</span>`;
+      starBtn.setAttribute("aria-label", newVal ? "Remover do culto" : "Adicionar ao culto");
       song.on_setlist = newVal;
-      
+
       await window.db.songs.update(song.id, { on_setlist: newVal });
       await window.SyncEngine.enqueueOperation("songs", "update", song.id, { on_setlist: newVal });
-      
+
       if(!el.pageCulto.classList.contains("hidden")) renderCultoSongs();
     });
 
@@ -315,9 +324,30 @@
   async function addSong(title) {
     const parsed = normalizeTitle(title);
     if (!parsed.title) return;
-    
+
     const existing = await window.db.songs.where('title_norm').equals(parsed.norm).first();
     if (existing) { showToast("Música já existe localmente!"); return; }
+
+    // A checagem acima só olha o banco local: se outro dispositivo cadastrou a
+    // mesma música enquanto este estava offline, o insert falharia depois no
+    // Supabase (title_norm é unique) e a música ficaria presa como erro na
+    // fila, sumindo silenciosamente no próximo fullSync. Checando o servidor
+    // aqui (quando online) evitamos criar esse duplicado em primeiro lugar.
+    if (window.SyncEngine.isOnline() && window.supabaseClient) {
+      try {
+        const { data: remoteExisting } = await window.supabaseClient
+          .from('songs').select('id').eq('title_norm', parsed.norm).maybeSingle();
+        if (remoteExisting) {
+          showToast("Música já existe no servidor! Sincronizando...");
+          closeModal(el.songModal);
+          el.newSongTitle.value = "";
+          await window.SyncEngine.fullSync();
+          return;
+        }
+      } catch (e) {
+        console.error("Erro ao checar duplicata remota:", e);
+      }
+    }
 
     const newId = crypto.randomUUID();
     const newSong = { id: newId, title: parsed.title, title_norm: parsed.norm, on_setlist: false, on_rehearsal: false };
@@ -444,21 +474,55 @@
       seen.add(n.norm); processed.push(n);
     }
     if (!processed.length) return;
-    
-    const existing = await window.db.songs.where('title_norm').anyOf(processed.map(i => i.norm)).toArray();
-    const existingSet = new Set(existing.map(i => i.title_norm));
-    
-    const toInsert = processed.filter(i => !existingSet.has(i.norm));
-    
-    for (const item of toInsert) {
-      const newId = crypto.randomUUID();
-      const newSong = { id: newId, title: item.title, title_norm: item.norm, on_setlist: false, on_rehearsal: false };
-      await window.db.songs.put(newSong);
-      await window.SyncEngine.enqueueOperation("songs", "create", newId, newSong);
+
+    const existingLocal = await window.db.songs.where('title_norm').anyOf(processed.map(i => i.norm)).toArray();
+    const existingSet = new Set(existingLocal.map(i => i.title_norm));
+
+    // Também checa duplicatas no servidor (quando online) — sem isso, uma
+    // música já existente em outro dispositivo (ainda não sincronizada aqui)
+    // seria reenviada, falharia por violar o unique de title_norm e sumiria
+    // silenciosamente no próximo fullSync (ver mesmo cuidado em addSong()).
+    if (window.SyncEngine.isOnline() && window.supabaseClient) {
+      const stillUnknown = processed.filter(i => !existingSet.has(i.norm)).map(i => i.norm);
+      if (stillUnknown.length) {
+        try {
+          const { data: remoteExisting } = await window.supabaseClient
+            .from('songs').select('title_norm').in('title_norm', stillUnknown);
+          (remoteExisting || []).forEach(r => existingSet.add(r.title_norm));
+        } catch (e) {
+          console.error("Erro ao checar duplicatas remotas no import:", e);
+        }
+      }
     }
-    
+
+    const toInsert = processed.filter(i => !existingSet.has(i.norm));
+    const skipped = processed.length - toInsert.length;
+
+    if (!toInsert.length) {
+      el.importSummary.textContent = `Nenhuma música nova — as ${processed.length} já existiam.`;
+      el.importSummary.classList.remove("hidden");
+      return;
+    }
+
+    const newSongs = toInsert.map(item => ({
+      id: crypto.randomUUID(), title: item.title, title_norm: item.norm, on_setlist: false, on_rehearsal: false
+    }));
+
+    // Insere e sincroniza em lotes de CHUNK_SIZE em vez de um item por vez,
+    // reduzindo o número de operações sequenciais para listas grandes.
+    for (let i = 0; i < newSongs.length; i += CHUNK_SIZE) {
+      const chunk = newSongs.slice(i, i + CHUNK_SIZE);
+      await window.db.songs.bulkPut(chunk);
+      for (const song of chunk) {
+        await window.SyncEngine.enqueueOperation("songs", "create", song.id, song);
+      }
+    }
+
     await loadSongs();
-    closeModal(el.importModal);
+    el.bulkText.value = "";
+    el.importSummary.textContent = `${toInsert.length} música(s) importada(s)` +
+      (skipped > 0 ? ` — ${skipped} já existente(s) ignorada(s).` : ".");
+    el.importSummary.classList.remove("hidden");
     showToast("Músicas importadas!", "success");
   }
 
@@ -466,7 +530,11 @@
   function bindEvents() {
     el.searchInput.addEventListener("input", debounce(e => applyFilter(e.target.value), 300));
     el.addSongBtn.addEventListener("click",    () => openModal(el.songModal, el.newSongTitle));
-    el.bulkImportBtn.addEventListener("click", () => openModal(el.importModal, el.bulkText));
+    el.bulkImportBtn.addEventListener("click", () => {
+      el.importSummary.classList.add("hidden");
+      el.importSummary.textContent = "";
+      openModal(el.importModal, el.bulkText);
+    });
     el.confirmAddSong.addEventListener("click", () => addSong(el.newSongTitle.value));
     el.confirmImport.addEventListener("click", bulkImport);
     el.tabKeys.addEventListener("click",       () => switchDetailTab("keys"));
@@ -502,10 +570,8 @@
       let text = "🔥 *Setlist do Culto:*\n\n";
       cultoSongs.forEach((song, index) => {
         const cached = state.keysCache[song.id] || [];
-        let mainKey = "";
-        const pastorKey = cached.find(k => k.member_name.includes("Pastor") && k.key);
-        const anyKey = cached.find(k => k.key);
-        if (pastorKey) mainKey = ` (${pastorKey.key})`; else if (anyKey) mainKey = ` (${anyKey.key})`;
+        const key = getMainKey(cached);
+        const mainKey = key ? ` (${key})` : "";
         const cifraLink = song.cifra_url || getDefaultCifraSearchUrl(song.title);
         
         text += `${index + 1}. *${song.title}*${mainKey}\n🎸 Cifra: ${cifraLink}\n`;
@@ -541,10 +607,8 @@
       let text = "🎧 *Músicas para o Ensaio:*\n\n";
       ensaioSongs.forEach((song, index) => {
         const cached = state.keysCache[song.id] || [];
-        let mainKey = "";
-        const pastorKey = cached.find(k => k.member_name.includes("Pastor") && k.key);
-        const anyKey = cached.find(k => k.key);
-        if (pastorKey) mainKey = ` (${pastorKey.key})`; else if (anyKey) mainKey = ` (${anyKey.key})`;
+        const key = getMainKey(cached);
+        const mainKey = key ? ` (${key})` : "";
         const cifraLink = song.cifra_url || getDefaultCifraSearchUrl(song.title);
         
         text += `${index + 1}. *${song.title}*${mainKey}\n🎸 Cifra: ${cifraLink}\n`;
@@ -566,9 +630,28 @@
     [el.songModal, el.importModal, el.detailModal].forEach(m => m.addEventListener("click", e => { if (e.target === m) closeModal(m); }));
   }
 
-  async function init() { 
-    bindEvents(); 
-    
+  // A altura do .top-bar varia entre aparelhos por causa do
+  // env(safe-area-inset-top) (notch, Dynamic Island etc). Medimos o valor
+  // real e expomos via --topbar-height para o body usar como padding-top,
+  // em vez de um valor fixo "chutado" que pode sobrepor ou deixar vão.
+  function syncTopBarHeight() {
+    const topBar = document.querySelector(".top-bar");
+    if (!topBar) return;
+    const apply = () => {
+      document.documentElement.style.setProperty("--topbar-height", `${topBar.offsetHeight}px`);
+    };
+    apply();
+    if (window.ResizeObserver) {
+      new ResizeObserver(apply).observe(topBar);
+    } else {
+      window.addEventListener("resize", apply);
+    }
+  }
+
+  async function init() {
+    bindEvents();
+    syncTopBarHeight();
+
     // Start listening for connectivity and sync
     if (window.SyncEngine) {
        window.SyncEngine.setupConnectivityListeners();
