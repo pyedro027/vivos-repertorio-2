@@ -107,6 +107,27 @@
     </section>
   </main>
 
+  <main id="pageSetlists" class="app-main hidden">
+    <header class="app-header">
+      <img src="assets/logo.png" alt="Logo" class="header-logo" onerror="this.style.display='none'">
+      <div>
+        <h1>Cultos</h1>
+        <p>Setlists organizados por data</p>
+      </div>
+    </header>
+
+    <section class="controls action-row" style="padding: 0 0 16px 0;">
+      <button id="newServiceBtn" class="btn btn-primary full">
+        <span class="material-symbols-outlined">add</span> Novo Culto
+      </button>
+    </section>
+
+    <section class="list-wrap">
+      <ul id="servicesList" class="songs-list"></ul>
+      <p id="servicesEmptyState" class="empty-state">Nenhum culto criado ainda.</p>
+    </section>
+  </main>
+
   <nav class="bottom-nav">
     <button id="navRepertorio" class="nav-btn nav-active">
       <span class="material-symbols-outlined">library_music</span>
@@ -119,6 +140,10 @@
     <button id="navCulto" class="nav-btn">
       <span class="material-symbols-outlined">local_fire_department</span>
       <span>Culto</span>
+    </button>
+    <button id="navSetlists" class="nav-btn">
+      <span class="material-symbols-outlined">event_note</span>
+      <span>Cultos</span>
     </button>
   </nav>
 
@@ -211,6 +236,62 @@
 
         <ul id="shareList" class="share-list"></ul>
         <p id="shareEmptyState" class="empty-state">Ainda não compartilhado com ninguém.</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="serviceModal" class="modal hidden">
+    <div class="modal-content">
+      <button id="closeServiceModalBtn" class="icon-close" aria-label="Fechar"><span class="material-symbols-outlined">close</span></button>
+      <h3 id="serviceModalTitle">Novo culto</h3>
+      <label class="input-label">Nome</label>
+      <input id="serviceNameField" class="input-text" type="text" placeholder="Ex: Culto de Domingo" />
+      <label class="input-label">Data</label>
+      <input id="serviceDateField" class="input-text" type="date" />
+      <label class="input-label">Observações (opcional)</label>
+      <textarea id="serviceNotesField" class="input-textarea" rows="2" placeholder="Ex: Culto de aniversário da igreja..."></textarea>
+      <button id="confirmServiceSave" class="btn btn-primary full">Salvar</button>
+    </div>
+  </div>
+
+  <div id="serviceDetailModal" class="modal hidden">
+    <div class="modal-content large" id="serviceDetailContent">
+      <button class="icon-close no-print" data-close="serviceDetailModal" aria-label="Fechar"><span class="material-symbols-outlined">close</span></button>
+
+      <div class="service-detail-header">
+        <h3 id="serviceDetailTitle">Culto</h3>
+        <p id="serviceDetailDate" class="service-detail-date"></p>
+        <p id="serviceDetailNotes" class="service-detail-notes hidden"></p>
+      </div>
+
+      <div class="detail-actions no-print" style="margin-bottom: 16px;">
+        <button id="editServiceBtn" class="btn btn-soft" title="Editar culto" aria-label="Editar culto">
+          <span class="material-symbols-outlined">edit</span> Editar
+        </button>
+        <button id="deleteServiceBtn" class="btn btn-danger icon-only" title="Excluir culto" aria-label="Excluir culto">
+          <span class="material-symbols-outlined">delete</span>
+        </button>
+      </div>
+
+      <div class="no-print">
+        <label class="input-label">Adicionar música do repertório</label>
+        <div class="search-wrapper" style="margin: 0 0 8px;">
+          <span class="material-symbols-outlined search-icon">search</span>
+          <input id="serviceSongSearch" class="input-text search-input" type="search" placeholder="Buscar por título..." autocomplete="off" />
+        </div>
+        <ul id="serviceSongResults" class="song-search-results hidden"></ul>
+      </div>
+
+      <ul id="serviceSongsList" class="service-songs-list"></ul>
+      <p id="serviceSongsEmptyState" class="empty-state">Nenhuma música adicionada a este culto ainda.</p>
+
+      <div class="detail-actions no-print" style="margin-top: 16px;">
+        <button id="shareServiceBtn" class="btn btn-primary" style="flex: 3;">
+          <span class="material-symbols-outlined">share</span> Compartilhar
+        </button>
+        <button id="printServiceBtn" class="btn btn-soft icon-only" title="Imprimir / PDF" aria-label="Imprimir ou exportar PDF">
+          <span class="material-symbols-outlined">print</span>
+        </button>
       </div>
     </div>
   </div>

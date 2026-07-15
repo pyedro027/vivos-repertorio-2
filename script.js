@@ -14,7 +14,12 @@
     signInMounted: false,
     userButtonMounted: false,
     initialTabApplied: false,
-    installScreenChecked: false
+    installScreenChecked: false,
+
+    services: [],
+    selectedService: null,
+    serviceSongs: [],
+    serviceModalMode: "create"
   };
 
   const el = {
@@ -85,7 +90,33 @@
     saveCifraBtn:   document.getElementById("saveCifraBtn"),
     youtubeUrlField:document.getElementById("youtubeUrlField"),
     openYoutubeBtn: document.getElementById("openYoutubeBtn"),
-    saveYoutubeBtn: document.getElementById("saveYoutubeBtn")
+    saveYoutubeBtn: document.getElementById("saveYoutubeBtn"),
+
+    navSetlists:    document.getElementById("navSetlists"),
+    pageSetlists:   document.getElementById("pageSetlists"),
+    newServiceBtn:  document.getElementById("newServiceBtn"),
+    servicesList:   document.getElementById("servicesList"),
+    servicesEmptyState: document.getElementById("servicesEmptyState"),
+
+    serviceModal:      document.getElementById("serviceModal"),
+    serviceModalTitle: document.getElementById("serviceModalTitle"),
+    serviceNameField:  document.getElementById("serviceNameField"),
+    serviceDateField:  document.getElementById("serviceDateField"),
+    serviceNotesField: document.getElementById("serviceNotesField"),
+    confirmServiceSave:document.getElementById("confirmServiceSave"),
+
+    serviceDetailModal:document.getElementById("serviceDetailModal"),
+    serviceDetailTitle:document.getElementById("serviceDetailTitle"),
+    serviceDetailDate: document.getElementById("serviceDetailDate"),
+    serviceDetailNotes:document.getElementById("serviceDetailNotes"),
+    editServiceBtn:    document.getElementById("editServiceBtn"),
+    deleteServiceBtn:  document.getElementById("deleteServiceBtn"),
+    serviceSongSearch: document.getElementById("serviceSongSearch"),
+    serviceSongResults:document.getElementById("serviceSongResults"),
+    serviceSongsList:  document.getElementById("serviceSongsList"),
+    serviceSongsEmptyState: document.getElementById("serviceSongsEmptyState"),
+    shareServiceBtn:   document.getElementById("shareServiceBtn"),
+    printServiceBtn:   document.getElementById("printServiceBtn")
   };
 
   const emptyStateDefaultText = el.emptyState.textContent;
@@ -198,6 +229,28 @@
     return anyKey ? anyKey.key : "";
   }
 
+  // "service_date" vem do Supabase como "YYYY-MM-DD" (coluna `date`, sem
+  // horário). Formatamos com split de string em vez de `new Date(...)` de
+  // propósito: parsear "YYYY-MM-DD" com Date usa UTC meia-noite, o que pode
+  // exibir o dia errado dependendo do fuso horário do navegador.
+  function formatServiceDate(dateStr, includeYear = true) {
+    if (!dateStr) return "";
+    const [y, m, d] = dateStr.split("-");
+    return includeYear ? `${d}/${m}/${y}` : `${d}/${m}`;
+  }
+
+  // Tons dos 6 membros para uma música, na ordem fixa de MEMBERS.
+  // omitMissing=true pula quem não tem tom definido (usado no texto do
+  // WhatsApp); omitMissing=false mantém todos com "—" (usado na tela).
+  function buildTonsLine(songId, { omitMissing } = {}) {
+    const cached = state.keysCache[songId] || [];
+    return MEMBERS.map(name => {
+      const found = cached.find(k => k.member_name === name && k.key);
+      if (!found && omitMissing) return null;
+      return { name: name.split(" ")[0], key: found ? found.key : null };
+    }).filter(Boolean);
+  }
+
   // ===================== AUTENTICAÇÃO (Clerk) =====================
   function getCurrentUserId() {
     return window.Clerk?.user?.id || null;
@@ -216,6 +269,10 @@
       loadSongs().catch(err => {
         console.error("Erro ao carregar músicas:", err);
         showToast("Erro ao carregar músicas. Verifique sua conexão.", "error");
+      });
+      loadServices().catch(err => {
+        console.error("Erro ao carregar cultos:", err);
+        showToast("Erro ao carregar cultos. Verifique sua conexão.", "error");
       });
       applyInitialTabFromUrl();
 
@@ -366,10 +423,12 @@
     el.navRepertorio.classList.remove("nav-active");
     el.navCulto.classList.remove("nav-active");
     el.navEnsaio.classList.remove("nav-active");
+    el.navSetlists.classList.remove("nav-active");
 
     el.pageRepertorio.classList.add("hidden");
     el.pageCulto.classList.add("hidden");
     el.pageEnsaio.classList.add("hidden");
+    el.pageSetlists.classList.add("hidden");
 
     if (page === "repertorio") {
       el.navRepertorio.classList.add("nav-active");
@@ -382,6 +441,10 @@
       el.navEnsaio.classList.add("nav-active");
       el.pageEnsaio.classList.remove("hidden");
       renderEnsaioSongs();
+    } else if (page === "setlists") {
+      el.navSetlists.classList.add("nav-active");
+      el.pageSetlists.classList.remove("hidden");
+      renderServicesList();
     }
   }
 
@@ -696,6 +759,341 @@
     renderShareList();
   }
 
+  // ===================== CULTOS / SETLISTS =====================
+  async function loadServices() {
+    const { data, error } = await window.supabaseClient
+      .from('services').select('*').order('service_date', { ascending: false });
+    if (error) {
+      console.error("Erro ao carregar cultos:", error);
+      showToast("Erro ao carregar cultos: " + error.message, "error");
+      return;
+    }
+    state.services = data || [];
+    renderServicesList();
+  }
+
+  function renderServicesList() {
+    el.servicesList.innerHTML = "";
+    el.servicesEmptyState.style.display = state.services.length ? "none" : "block";
+
+    state.services.forEach(service => {
+      const card = document.createElement("div");
+      card.className = "service-card";
+
+      const icon = document.createElement("div");
+      icon.className = "service-card-icon";
+      icon.innerHTML = `<span class="material-symbols-outlined">event_note</span>`;
+
+      const info = document.createElement("div");
+      info.className = "service-card-info";
+      const name = document.createElement("span");
+      name.className = "service-card-name";
+      name.textContent = service.name;
+      const date = document.createElement("span");
+      date.className = "service-card-date";
+      date.textContent = formatServiceDate(service.service_date);
+      info.append(name, date);
+
+      const chevron = document.createElement("span");
+      chevron.className = "material-symbols-outlined service-card-chevron";
+      chevron.textContent = "chevron_right";
+
+      card.append(icon, info, chevron);
+      card.addEventListener("click", () => openServiceDetail(service.id));
+
+      const li = document.createElement("li");
+      li.appendChild(card);
+      el.servicesList.appendChild(li);
+    });
+  }
+
+  function openServiceModal(mode) {
+    state.serviceModalMode = mode;
+    if (mode === "edit" && state.selectedService) {
+      el.serviceModalTitle.textContent = "Editar culto";
+      el.serviceNameField.value = state.selectedService.name || "";
+      el.serviceDateField.value = state.selectedService.service_date || "";
+      el.serviceNotesField.value = state.selectedService.notes || "";
+      // O modal de edição e o de detalhe têm o mesmo z-index e ficariam
+      // empilhados (o de detalhe, por vir depois no HTML, capturaria os
+      // cliques). Escondemos o de detalhe enquanto edita; closeServiceModal
+      // reabre ele depois (seja salvando ou cancelando a edição).
+      el.serviceDetailModal.classList.add("hidden");
+    } else {
+      el.serviceModalTitle.textContent = "Novo culto";
+      el.serviceNameField.value = "";
+      el.serviceDateField.value = "";
+      el.serviceNotesField.value = "";
+    }
+    openModal(el.serviceModal, el.serviceNameField);
+  }
+
+  function closeServiceModal() {
+    const wasEditing = state.serviceModalMode === "edit";
+    closeModal(el.serviceModal);
+    if (wasEditing && state.selectedService) {
+      openModal(el.serviceDetailModal);
+    }
+  }
+
+  async function saveService() {
+    const name = el.serviceNameField.value.trim();
+    const service_date = el.serviceDateField.value;
+    const notes = el.serviceNotesField.value.trim() || null;
+
+    if (!name || !service_date) {
+      showToast("Preencha nome e data do culto.");
+      return;
+    }
+
+    if (state.serviceModalMode === "edit" && state.selectedService) {
+      const { error } = await window.supabaseClient
+        .from('services').update({ name, service_date, notes }).eq('id', state.selectedService.id);
+      if (error) {
+        console.error("Erro ao salvar culto:", error);
+        showToast("Erro ao salvar culto: " + error.message, "error");
+        return;
+      }
+      state.selectedService = { ...state.selectedService, name, service_date, notes };
+      renderServiceDetailHeader();
+      closeServiceModal();
+      await loadServices();
+      showToast("Culto atualizado!", "success");
+    } else {
+      const { data, error } = await window.supabaseClient
+        .from('services').insert({ name, service_date, notes }).select().single();
+      if (error) {
+        console.error("Erro ao criar culto:", error);
+        showToast("Erro ao criar culto: " + error.message, "error");
+        return;
+      }
+      closeServiceModal();
+      await loadServices();
+      showToast("Culto criado!", "success");
+      if (data) openServiceDetail(data.id);
+    }
+  }
+
+  async function deleteService() {
+    const ok = await showConfirm(`Excluir "${state.selectedService.name}"? As músicas do setlist também serão removidas.`);
+    if (!ok) return;
+
+    const { error } = await window.supabaseClient.from('services').delete().eq('id', state.selectedService.id);
+    if (error) {
+      console.error("Erro ao excluir culto:", error);
+      showToast("Erro ao excluir culto: " + error.message, "error");
+      return;
+    }
+
+    closeModal(el.serviceDetailModal);
+    await loadServices();
+    showToast("Culto excluído.");
+  }
+
+  function renderServiceDetailHeader() {
+    const service = state.selectedService;
+    el.serviceDetailTitle.textContent = service.name;
+    el.serviceDetailDate.textContent = formatServiceDate(service.service_date);
+    if (service.notes) {
+      el.serviceDetailNotes.textContent = service.notes;
+      el.serviceDetailNotes.classList.remove("hidden");
+    } else {
+      el.serviceDetailNotes.classList.add("hidden");
+    }
+  }
+
+  async function openServiceDetail(serviceId) {
+    const service = state.services.find(s => s.id === serviceId);
+    if (!service) return;
+    state.selectedService = service;
+
+    renderServiceDetailHeader();
+    el.serviceSongSearch.value = "";
+    el.serviceSongResults.innerHTML = "";
+    el.serviceSongResults.classList.add("hidden");
+
+    await loadServiceSongs(serviceId);
+    openModal(el.serviceDetailModal);
+  }
+
+  async function loadServiceSongs(serviceId) {
+    const { data, error } = await window.supabaseClient
+      .from('service_songs').select('*').eq('service_id', serviceId).order('position');
+    if (error) {
+      console.error("Erro ao carregar músicas do culto:", error);
+      showToast("Erro ao carregar músicas do culto: " + error.message, "error");
+      return;
+    }
+    state.serviceSongs = data || [];
+    renderServiceSongsList();
+  }
+
+  function renderServiceSongTonsEl(songId) {
+    const parts = buildTonsLine(songId, { omitMissing: false });
+    const container = document.createElement("div");
+    container.className = "service-song-tons";
+    parts.forEach(p => {
+      const span = document.createElement("span");
+      if (p.key) span.classList.add("has-key");
+      span.textContent = `${p.name}: ${p.key || "—"}`;
+      container.appendChild(span);
+    });
+    return container;
+  }
+
+  function renderServiceSongsList() {
+    el.serviceSongsList.innerHTML = "";
+    el.serviceSongsEmptyState.style.display = state.serviceSongs.length ? "none" : "block";
+
+    state.serviceSongs.forEach((row, index) => {
+      const song = state.songs.find(s => s.id === row.song_id);
+      if (!song) return;
+
+      const li = document.createElement("li");
+      li.className = "service-song-item";
+
+      const position = document.createElement("div");
+      position.className = "service-song-position";
+      position.textContent = String(index + 1);
+
+      const info = document.createElement("div");
+      info.className = "service-song-info";
+      const title = document.createElement("span");
+      title.className = "service-song-title";
+      title.textContent = song.title;
+      info.append(title, renderServiceSongTonsEl(song.id));
+
+      const actions = document.createElement("div");
+      actions.className = "service-song-actions no-print";
+
+      const upBtn = document.createElement("button");
+      upBtn.innerHTML = `<span class="material-symbols-outlined">keyboard_arrow_up</span>`;
+      upBtn.setAttribute("aria-label", "Mover para cima");
+      upBtn.disabled = index === 0;
+      upBtn.addEventListener("click", () => moveServiceSong(index, -1));
+
+      const downBtn = document.createElement("button");
+      downBtn.innerHTML = `<span class="material-symbols-outlined">keyboard_arrow_down</span>`;
+      downBtn.setAttribute("aria-label", "Mover para baixo");
+      downBtn.disabled = index === state.serviceSongs.length - 1;
+      downBtn.addEventListener("click", () => moveServiceSong(index, 1));
+
+      const removeBtn = document.createElement("button");
+      removeBtn.className = "service-song-remove";
+      removeBtn.innerHTML = `<span class="material-symbols-outlined">close</span>`;
+      removeBtn.setAttribute("aria-label", `Remover ${song.title} do culto`);
+      removeBtn.addEventListener("click", () => removeServiceSong(row.id));
+
+      actions.append(upBtn, downBtn, removeBtn);
+      li.append(position, info, actions);
+      el.serviceSongsList.appendChild(li);
+    });
+  }
+
+  function renderServiceSongSearch(query) {
+    const q = (query || "").trim().toLocaleLowerCase("pt-BR");
+    el.serviceSongResults.innerHTML = "";
+    if (!q) { el.serviceSongResults.classList.add("hidden"); return; }
+
+    const alreadyAdded = new Set(state.serviceSongs.map(r => r.song_id));
+    const matches = state.songs.filter(s => s.title_norm.includes(q) && !alreadyAdded.has(s.id)).slice(0, 8);
+
+    el.serviceSongResults.classList.toggle("hidden", matches.length === 0);
+    matches.forEach(song => {
+      const li = document.createElement("li");
+      li.className = "song-search-result";
+      li.textContent = song.title;
+      li.addEventListener("click", () => addSongToService(song.id));
+      el.serviceSongResults.appendChild(li);
+    });
+  }
+
+  async function addSongToService(songId) {
+    const nextPosition = state.serviceSongs.length
+      ? Math.max(...state.serviceSongs.map(r => r.position)) + 1
+      : 0;
+
+    const { error } = await window.supabaseClient.from('service_songs').insert({
+      service_id: state.selectedService.id,
+      song_id: songId,
+      position: nextPosition
+    });
+    if (error) {
+      console.error("Erro ao adicionar música ao culto:", error);
+      showToast("Erro ao adicionar música: " + error.message, "error");
+      return;
+    }
+
+    el.serviceSongSearch.value = "";
+    el.serviceSongResults.innerHTML = "";
+    el.serviceSongResults.classList.add("hidden");
+    await loadServiceSongs(state.selectedService.id);
+    showToast("Música adicionada ao culto!", "success");
+  }
+
+  async function removeServiceSong(rowId) {
+    const { error } = await window.supabaseClient.from('service_songs').delete().eq('id', rowId);
+    if (error) {
+      console.error("Erro ao remover música do culto:", error);
+      showToast("Erro ao remover: " + error.message, "error");
+      return;
+    }
+    await loadServiceSongs(state.selectedService.id);
+  }
+
+  async function moveServiceSong(index, direction) {
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= state.serviceSongs.length) return;
+
+    const a = state.serviceSongs[index];
+    const b = state.serviceSongs[targetIndex];
+
+    const { error } = await window.supabaseClient.from('service_songs').upsert([
+      { id: a.id, service_id: a.service_id, song_id: a.song_id, position: b.position },
+      { id: b.id, service_id: b.service_id, song_id: b.song_id, position: a.position }
+    ]);
+    if (error) {
+      console.error("Erro ao reordenar músicas do culto:", error);
+      showToast("Erro ao reordenar: " + error.message, "error");
+      return;
+    }
+
+    await loadServiceSongs(state.selectedService.id);
+  }
+
+  function buildServiceShareText(service, serviceSongs) {
+    let text = `🎶 ${service.name} — ${formatServiceDate(service.service_date, false)}\n\n`;
+    serviceSongs.forEach((row, index) => {
+      const song = state.songs.find(s => s.id === row.song_id);
+      if (!song) return;
+      text += `${index + 1}. ${song.title}\n`;
+      const parts = buildTonsLine(song.id, { omitMissing: true }).map(p => `${p.name}: ${p.key}`);
+      if (parts.length) text += `   ${parts.join(" | ")}\n`;
+      text += `\n`;
+    });
+    return text.trim();
+  }
+
+  async function shareService() {
+    if (!state.selectedService) return;
+    const text = buildServiceShareText(state.selectedService, state.serviceSongs);
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: state.selectedService.name, text });
+        return;
+      } catch (e) {
+        if (e && e.name === "AbortError") return;
+        console.error("Erro ao compartilhar via API nativa, tentando WhatsApp:", e);
+      }
+    }
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+  }
+
+  function printService() {
+    window.print();
+  }
+
   // ===================== EVENTOS =====================
   function bindEvents() {
     el.searchInput.addEventListener("input", debounce(e => applyFilter(e.target.value), 300));
@@ -718,6 +1116,17 @@
     el.navRepertorio.addEventListener("click", () => switchPage("repertorio"));
     el.navCulto.addEventListener("click", () => switchPage("culto"));
     el.navEnsaio.addEventListener("click", () => switchPage("ensaio"));
+    el.navSetlists.addEventListener("click", () => switchPage("setlists"));
+
+    // CULTOS / SETLISTS
+    el.newServiceBtn.addEventListener("click", () => openServiceModal("create"));
+    el.confirmServiceSave.addEventListener("click", saveService);
+    document.getElementById("closeServiceModalBtn").addEventListener("click", closeServiceModal);
+    el.editServiceBtn.addEventListener("click", () => openServiceModal("edit"));
+    el.deleteServiceBtn.addEventListener("click", deleteService);
+    el.serviceSongSearch.addEventListener("input", debounce(e => renderServiceSongSearch(e.target.value), 300));
+    el.shareServiceBtn.addEventListener("click", shareService);
+    el.printServiceBtn.addEventListener("click", printService);
 
     // AÇÕES CULTO
     el.clearSetlistBtn.addEventListener("click", async () => {
@@ -809,7 +1218,11 @@
     if (el.saveYoutubeBtn) el.saveYoutubeBtn.addEventListener("click", saveYoutubeUrl);
 
     document.querySelectorAll("[data-close]").forEach(btn => btn.addEventListener("click", () => closeModal(document.getElementById(btn.dataset.close))));
-    [el.songModal, el.importModal, el.detailModal].forEach(m => m.addEventListener("click", e => { if (e.target === m) closeModal(m); }));
+    [el.songModal, el.importModal, el.detailModal, el.serviceDetailModal].forEach(m => m.addEventListener("click", e => { if (e.target === m) closeModal(m); }));
+    // serviceModal usa closeServiceModal (não o closeModal genérico) porque,
+    // ao editar a partir do detalhe do culto, precisa reabrir o modal de
+    // detalhe que foi escondido em openServiceModal — ver comentário lá.
+    el.serviceModal.addEventListener("click", e => { if (e.target === el.serviceModal) closeServiceModal(); });
   }
 
   // A altura do .top-bar varia entre aparelhos por causa do

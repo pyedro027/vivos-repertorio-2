@@ -138,6 +138,26 @@ create table if not exists public.song_shares (
   created_at timestamptz default now()
 );
 
+-- Cultos (setlists organizados por data). service_songs.position define a
+-- ordem das músicas dentro do culto; on delete cascade em service_id remove
+-- as músicas do setlist junto quando o culto é excluído.
+create table if not exists public.services (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  service_date date not null,
+  notes text,
+  created_by text default auth.jwt()->>'sub',
+  created_at timestamptz default now()
+);
+
+create table if not exists public.service_songs (
+  id uuid primary key default gen_random_uuid(),
+  service_id uuid not null references public.services(id) on delete cascade,
+  song_id uuid not null references public.songs(id) on delete cascade,
+  position integer not null default 0,
+  created_at timestamptz default now()
+);
+
 create or replace function public.seed_song_keys_after_song_insert()
 returns trigger
 language plpgsql
@@ -167,8 +187,10 @@ execute function public.seed_song_keys_after_song_insert();
 -- alter table public.songs enable row level security;
 -- alter table public.song_keys enable row level security;
 -- alter table public.song_shares enable row level security;
--- (as policies em si dependem de como owner_id/song_shares devem se
--- relacionar no seu caso — configure-as no painel do Supabase.)
+-- alter table public.services enable row level security;
+-- alter table public.service_songs enable row level security;
+-- (as policies em si dependem de como owner_id/song_shares/multiusuário
+-- devem se relacionar no seu caso — configure-as no painel do Supabase.)
 ```
 
 ## Uso local
@@ -219,3 +241,10 @@ Se o arquivo não existir, o sistema mostra fallback com `VC` automaticamente.
 - Inserção em lotes de 50 itens, com resumo de quantas foram importadas/ignoradas.
 - Detalhes da música com 6 membros fixos e salvamento de tons.
 - Exclusão opcional de música (cascade em `song_keys`).
+- **Cultos (aba "Cultos")**: criar/editar/excluir cultos com nome, data e
+  observações (`services`); montar o setlist adicionando músicas do
+  repertório, reordenando (setas) e removendo (`service_songs`, ordenado por
+  `position`); ver o culto montado com os tons dos 6 membros por música;
+  compartilhar no WhatsApp/nativo (`navigator.share` quando disponível) num
+  texto formatado com ordem e tons; exportar/imprimir via `window.print()`
+  com layout limpo (`@media print`).

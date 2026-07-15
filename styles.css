@@ -172,6 +172,28 @@ input.search-input {
 
 .empty-state { text-align: center; color: var(--on-surface-muted); padding: 40px 20px; font-weight: 500; }
 
+.service-card {
+  width: 100%; box-sizing: border-box;
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-card);
+  padding: 14px 16px;
+  display: flex; align-items: center; gap: 14px;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+}
+.service-card-icon {
+  width: 44px; height: 44px; flex-shrink: 0;
+  background: var(--surface-variant);
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--primary);
+}
+.service-card-info { flex: 1; min-width: 0; }
+.service-card-name { font-weight: 700; font-size: 1.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.service-card-date { font-size: 0.8rem; color: var(--on-surface-muted); font-weight: 600; margin-top: 2px; display: block; }
+.service-card-chevron { color: var(--outline); flex-shrink: 0; }
+
 /* =============================================
    NAVEGAÇÃO INFERIOR (Bottom Nav)
    ============================================= */
@@ -282,3 +304,50 @@ input.search-input {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
 }
 .update-banner span { font-weight: 600; font-size: 0.9rem; flex: 1; }
+
+/* CULTOS / SETLISTS */
+.service-detail-header { margin-bottom: 16px; }
+.service-detail-date { color: var(--on-surface-muted); font-weight: 600; font-size: 0.9rem; margin-top: 4px; }
+.service-detail-notes { color: var(--on-surface-muted); font-size: 0.85rem; margin-top: 8px; line-height: 1.4; }
+
+.song-search-results { list-style: none; padding: 0; margin: 0 0 16px; display: flex; flex-direction: column; gap: 6px; max-height: 200px; overflow-y: auto; }
+.song-search-result { background: var(--surface); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 10px 14px; font-weight: 600; font-size: 0.9rem; cursor: pointer; }
+.song-search-result:hover { border-color: var(--primary); }
+
+.service-songs-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.service-song-item {
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  padding: 12px 14px;
+  display: flex; align-items: flex-start; gap: 12px;
+}
+.service-song-position {
+  width: 28px; height: 28px; flex-shrink: 0;
+  background: var(--surface-variant);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 0.85rem; color: var(--on-surface);
+  margin-top: 2px;
+}
+.service-song-info { flex: 1; min-width: 0; }
+.service-song-title { font-weight: 700; font-size: 1rem; }
+.service-song-tons { font-size: 0.78rem; color: var(--on-surface-muted); font-weight: 600; margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px 10px; }
+.service-song-tons span.has-key { color: var(--primary); }
+.service-song-actions { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
+.service-song-actions button { background: none; border: none; cursor: pointer; padding: 4px; color: var(--on-surface-muted); border-radius: 8px; }
+.service-song-actions button:disabled { opacity: 0.3; cursor: default; }
+.service-song-remove { color: var(--danger) !important; margin-top: 4px; }
+
+@media print {
+  body * { visibility: hidden; }
+  #serviceDetailContent, #serviceDetailContent * { visibility: visible; }
+  #serviceDetailModal {
+    position: absolute; inset: 0; background: #fff; padding: 0; z-index: 9999;
+  }
+  #serviceDetailContent {
+    position: absolute; top: 0; left: 0; width: 100%; max-width: none;
+    box-shadow: none; border-radius: 0; padding: 24px;
+  }
+  .no-print { display: none !important; }
+}
