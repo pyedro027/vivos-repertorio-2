@@ -1,7 +1,7 @@
 {
   "name": "Vivos com Cristo — Repertório",
   "short_name": "Vivos",
-  "description": "Sistema de repertório de louvor offline-first",
+  "description": "Sistema de repertório de louvor para equipes de louvor",
   "id": "/",
   "start_url": "./",
   "scope": "./",

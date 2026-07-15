@@ -10,10 +10,20 @@
     selectedKeys: [],
     keysCache: {},
     detailTab: "keys",
-    lastFocusEl: null
+    lastFocusEl: null,
+    signInMounted: false,
+    userButtonMounted: false,
+    initialTabApplied: false,
+    installScreenChecked: false
   };
 
   const el = {
+    signInScreen:   document.getElementById("signInScreen"),
+    clerkSignIn:    document.getElementById("clerkSignIn"),
+    signInError:    document.getElementById("signInError"),
+    appRoot:        document.getElementById("appRoot"),
+    userButtonMount:document.getElementById("userButtonMount"),
+
     searchInput:    document.getElementById("searchInput"),
     songsList:      document.getElementById("songsList"),
     emptyState:     document.getElementById("emptyState"),
@@ -42,26 +52,34 @@
     deleteSongBtn:  document.getElementById("deleteSongBtn"),
     tabKeys:        document.getElementById("tabKeys"),
     tabLyrics:      document.getElementById("tabLyrics"),
+    tabShare:       document.getElementById("tabShare"),
     paneKeys:       document.getElementById("paneKeys"),
     paneLyrics:     document.getElementById("paneLyrics"),
-    
+    paneShare:      document.getElementById("paneShare"),
+
+    shareEmailField:document.getElementById("shareEmailField"),
+    shareCanEdit:   document.getElementById("shareCanEdit"),
+    addShareBtn:    document.getElementById("addShareBtn"),
+    shareList:      document.getElementById("shareList"),
+    shareEmptyState:document.getElementById("shareEmptyState"),
+
     navRepertorio:  document.getElementById("navRepertorio"),
     navCulto:       document.getElementById("navCulto"),
     navEnsaio:      document.getElementById("navEnsaio"),
     pageRepertorio: document.getElementById("pageRepertorio"),
     pageCulto:      document.getElementById("pageCulto"),
     pageEnsaio:     document.getElementById("pageEnsaio"),
-    
+
     cultoSongsList: document.getElementById("cultoSongsList"),
     cultoEmptyState:document.getElementById("cultoEmptyState"),
     ensaioSongsList:document.getElementById("ensaioSongsList"),
     ensaioEmptyState:document.getElementById("ensaioEmptyState"),
-    
+
     clearSetlistBtn:document.getElementById("clearSetlistBtn"),
     shareSetlistBtn:document.getElementById("shareSetlistBtn"),
     clearEnsaioBtn: document.getElementById("clearEnsaioBtn"),
     shareEnsaioBtn: document.getElementById("shareEnsaioBtn"),
-    
+
     cifraUrlField:  document.getElementById("cifraUrlField"),
     openCifraBtn:   document.getElementById("openCifraBtn"),
     saveCifraBtn:   document.getElementById("saveCifraBtn"),
@@ -69,6 +87,8 @@
     openYoutubeBtn: document.getElementById("openYoutubeBtn"),
     saveYoutubeBtn: document.getElementById("saveYoutubeBtn")
   };
+
+  const emptyStateDefaultText = el.emptyState.textContent;
 
   // ===================== UTILS =====================
   function normalizeTitle(title, stripNumberPrefix = false) {
@@ -135,10 +155,14 @@
   async function saveCifraUrl() {
     if (!state.selectedSong) return;
     const url = (el.cifraUrlField?.value || "").trim() || getDefaultCifraSearchUrl(state.selectedSong.title);
-    
-    await window.db.songs.update(state.selectedSong.id, { cifra_url: url });
-    await window.SyncEngine.enqueueOperation("songs", "update", state.selectedSong.id, { cifra_url: url });
-    
+
+    const { error } = await window.supabaseClient.from('songs').update({ cifra_url: url }).eq('id', state.selectedSong.id);
+    if (error) {
+      console.error("Erro ao salvar link da cifra:", error);
+      showToast("Erro ao salvar link: " + error.message, "error");
+      return;
+    }
+
     el.cifraUrlField.value = url;
     showToast("Link salvo!", "success");
   }
@@ -153,10 +177,14 @@
   async function saveYoutubeUrl() {
     if (!state.selectedSong) return;
     const url = (el.youtubeUrlField?.value || "").trim();
-    
-    await window.db.songs.update(state.selectedSong.id, { youtube_url: url });
-    await window.SyncEngine.enqueueOperation("songs", "update", state.selectedSong.id, { youtube_url: url });
-    
+
+    const { error } = await window.supabaseClient.from('songs').update({ youtube_url: url }).eq('id', state.selectedSong.id);
+    if (error) {
+      console.error("Erro ao salvar YouTube:", error);
+      showToast("Erro ao salvar YouTube: " + error.message, "error");
+      return;
+    }
+
     el.youtubeUrlField.value = url;
     showToast("YouTube salvo!", "success");
   }
@@ -170,7 +198,61 @@
     return anyKey ? anyKey.key : "";
   }
 
+  // ===================== AUTENTICAÇÃO (Clerk) =====================
+  function getCurrentUserId() {
+    return window.Clerk?.user?.id || null;
+  }
+
+  function renderAuthState() {
+    const signedIn = !!(window.Clerk && window.Clerk.user);
+    el.signInScreen.classList.toggle("hidden", signedIn);
+    el.appRoot.classList.toggle("hidden", !signedIn);
+
+    if (signedIn) {
+      if (!state.userButtonMounted) {
+        window.Clerk.mountUserButton(el.userButtonMount);
+        state.userButtonMounted = true;
+      }
+      loadSongs().catch(err => {
+        console.error("Erro ao carregar músicas:", err);
+        showToast("Erro ao carregar músicas. Verifique sua conexão.", "error");
+      });
+      applyInitialTabFromUrl();
+
+      // Só oferece instalar o app depois do login (ver comentário em
+      // index.html: mostrar antes conflita visualmente com a tela de login).
+      if (!state.installScreenChecked) {
+        state.installScreenChecked = true;
+        window.maybeShowInstallScreen?.();
+      }
+    } else if (!state.signInMounted) {
+      window.Clerk.mountSignIn(el.clerkSignIn);
+      state.signInMounted = true;
+    }
+  }
+
+  function applyInitialTabFromUrl() {
+    if (state.initialTabApplied) return;
+    state.initialTabApplied = true;
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get("tab") === "culto") switchPage("culto");
+    else if (urlParams.get("tab") === "ensaio") switchPage("ensaio");
+  }
+
   // ===================== RENDERIZAÇÃO =====================
+  function renderEnsaioBtnState(btn, active) {
+    btn.classList.toggle("active", active);
+    btn.innerHTML = `<span class="material-symbols-outlined">${active ? "headphones" : "headset_off"}</span>`;
+    btn.setAttribute("aria-label", active ? "Remover do ensaio" : "Adicionar ao ensaio");
+    btn.style.color = active ? "#6B6B66" : "";
+  }
+
+  function renderStarBtnState(btn, active) {
+    btn.classList.toggle("active", active);
+    btn.innerHTML = `<span class="material-symbols-outlined">${active ? "star" : "star_border"}</span>`;
+    btn.setAttribute("aria-label", active ? "Remover do culto" : "Adicionar ao culto");
+  }
+
   function createSongCard(song) {
     const card = document.createElement("div");
     card.className = "song-card";
@@ -184,7 +266,7 @@
 
     const info = document.createElement("div");
     info.className = "song-info";
-    
+
     const title = document.createElement("span");
     title.className = "song-title";
     title.textContent = song.title;
@@ -201,50 +283,54 @@
     actionsBlock.style.gap = "4px";
 
     const ensaioBtn = document.createElement("button");
-    ensaioBtn.className = `star-btn ${song.on_rehearsal ? "active" : ""}`;
-    ensaioBtn.innerHTML = `<span class="material-symbols-outlined">${song.on_rehearsal ? "headphones" : "headset_off"}</span>`;
-    ensaioBtn.setAttribute("aria-label", song.on_rehearsal ? "Remover do ensaio" : "Adicionar ao ensaio");
-    if(song.on_rehearsal) ensaioBtn.style.color = "#6B6B66";
+    ensaioBtn.className = "star-btn";
+    renderEnsaioBtnState(ensaioBtn, song.on_rehearsal);
 
     ensaioBtn.addEventListener("click", async (e) => {
       e.stopPropagation();
       const newVal = !song.on_rehearsal;
-      ensaioBtn.classList.toggle("active", newVal);
-      ensaioBtn.innerHTML = `<span class="material-symbols-outlined">${newVal ? "headphones" : "headset_off"}</span>`;
-      ensaioBtn.setAttribute("aria-label", newVal ? "Remover do ensaio" : "Adicionar ao ensaio");
-      ensaioBtn.style.color = newVal ? "#6B6B66" : "";
+      renderEnsaioBtnState(ensaioBtn, newVal);
       song.on_rehearsal = newVal;
 
-      await window.db.songs.update(song.id, { on_rehearsal: newVal });
-      await window.SyncEngine.enqueueOperation("songs", "update", song.id, { on_rehearsal: newVal });
+      const { error } = await window.supabaseClient.from('songs').update({ on_rehearsal: newVal }).eq('id', song.id);
+      if (error) {
+        console.error("Erro ao salvar:", error);
+        showToast("Erro ao salvar: " + error.message, "error");
+        song.on_rehearsal = !newVal;
+        renderEnsaioBtnState(ensaioBtn, !newVal);
+        return;
+      }
 
-      if(!el.pageEnsaio.classList.contains("hidden")) renderEnsaioSongs();
+      if (!el.pageEnsaio.classList.contains("hidden")) renderEnsaioSongs();
     });
 
     const starBtn = document.createElement("button");
-    starBtn.className = `star-btn ${song.on_setlist ? "active" : ""}`;
-    starBtn.innerHTML = `<span class="material-symbols-outlined">${song.on_setlist ? "star" : "star_border"}</span>`;
-    starBtn.setAttribute("aria-label", song.on_setlist ? "Remover do culto" : "Adicionar ao culto");
+    starBtn.className = "star-btn";
+    renderStarBtnState(starBtn, song.on_setlist);
 
     starBtn.addEventListener("click", async (e) => {
       e.stopPropagation();
       const newVal = !song.on_setlist;
-      starBtn.classList.toggle("active", newVal);
-      starBtn.innerHTML = `<span class="material-symbols-outlined">${newVal ? "star" : "star_border"}</span>`;
-      starBtn.setAttribute("aria-label", newVal ? "Remover do culto" : "Adicionar ao culto");
+      renderStarBtnState(starBtn, newVal);
       song.on_setlist = newVal;
 
-      await window.db.songs.update(song.id, { on_setlist: newVal });
-      await window.SyncEngine.enqueueOperation("songs", "update", song.id, { on_setlist: newVal });
+      const { error } = await window.supabaseClient.from('songs').update({ on_setlist: newVal }).eq('id', song.id);
+      if (error) {
+        console.error("Erro ao salvar:", error);
+        showToast("Erro ao salvar: " + error.message, "error");
+        song.on_setlist = !newVal;
+        renderStarBtnState(starBtn, !newVal);
+        return;
+      }
 
-      if(!el.pageCulto.classList.contains("hidden")) renderCultoSongs();
+      if (!el.pageCulto.classList.contains("hidden")) renderCultoSongs();
     });
 
     actionsBlock.append(ensaioBtn, starBtn);
     card.append(badge, info, actionsBlock);
-    
+
     card.addEventListener("click", () => openDetail(song.id));
-    
+
     const li = document.createElement("li");
     li.appendChild(card);
     return li;
@@ -280,7 +366,7 @@
     el.navRepertorio.classList.remove("nav-active");
     el.navCulto.classList.remove("nav-active");
     el.navEnsaio.classList.remove("nav-active");
-    
+
     el.pageRepertorio.classList.add("hidden");
     el.pageCulto.classList.add("hidden");
     el.pageEnsaio.classList.add("hidden");
@@ -301,60 +387,62 @@
 
   // ===================== SUPABASE =====================
   async function loadSongs() {
-    const localSongs = await window.db.songs.orderBy('title').toArray();
-    state.songs = localSongs || [];
+    el.songsList.innerHTML = "";
+    el.emptyState.textContent = "Carregando músicas...";
+    el.emptyState.style.display = "block";
+
+    const { data, error } = await window.supabaseClient.from('songs').select('*').order('title');
+    if (error) {
+      console.error("Erro ao carregar músicas:", error);
+      showToast("Erro ao carregar músicas: " + error.message, "error");
+      el.emptyState.textContent = "Erro ao carregar músicas.";
+      return;
+    }
+
+    state.songs = data || [];
+    el.emptyState.textContent = emptyStateDefaultText;
     await loadAllKeys();
     applyFilter(el.searchInput.value);
   }
 
   async function loadAllKeys() {
-    if (!state.songs.length) return;
-    const localKeys = await window.db.song_keys.toArray();
+    if (!state.songs.length) { state.keysCache = {}; return; }
+
+    const { data, error } = await window.supabaseClient.from('song_keys').select('*');
+    if (error) {
+      console.error("Erro ao carregar tons:", error);
+      showToast("Erro ao carregar tons: " + error.message, "error");
+      return;
+    }
+
     state.keysCache = {};
-    localKeys.forEach(row => {
+    (data || []).forEach(row => {
       if (!state.keysCache[row.song_id]) state.keysCache[row.song_id] = [];
       state.keysCache[row.song_id].push({ member_name: row.member_name, key: row.key });
     });
   }
 
-  window.addEventListener('vivos-sync-completed', async () => {
-    await loadSongs();
-  });
-
   async function addSong(title) {
     const parsed = normalizeTitle(title);
     if (!parsed.title) return;
 
-    const existing = await window.db.songs.where('title_norm').equals(parsed.norm).first();
-    if (existing) { showToast("Música já existe localmente!"); return; }
+    const { data: existing, error: checkErr } = await window.supabaseClient
+      .from('songs').select('id').eq('title_norm', parsed.norm).maybeSingle();
+    if (checkErr) {
+      console.error("Erro ao verificar duplicidade:", checkErr);
+      showToast("Erro ao verificar duplicidade: " + checkErr.message, "error");
+      return;
+    }
+    if (existing) { showToast("Música já existe!"); return; }
 
-    // A checagem acima só olha o banco local: se outro dispositivo cadastrou a
-    // mesma música enquanto este estava offline, o insert falharia depois no
-    // Supabase (title_norm é unique) e a música ficaria presa como erro na
-    // fila, sumindo silenciosamente no próximo fullSync. Checando o servidor
-    // aqui (quando online) evitamos criar esse duplicado em primeiro lugar.
-    if (window.SyncEngine.isOnline() && window.supabaseClient) {
-      try {
-        const { data: remoteExisting } = await window.supabaseClient
-          .from('songs').select('id').eq('title_norm', parsed.norm).maybeSingle();
-        if (remoteExisting) {
-          showToast("Música já existe no servidor! Sincronizando...");
-          closeModal(el.songModal);
-          el.newSongTitle.value = "";
-          await window.SyncEngine.fullSync();
-          return;
-        }
-      } catch (e) {
-        console.error("Erro ao checar duplicata remota:", e);
-      }
+    const { error } = await window.supabaseClient
+      .from('songs').insert({ title: parsed.title, title_norm: parsed.norm, on_setlist: false, on_rehearsal: false });
+    if (error) {
+      console.error("Erro ao adicionar música:", error);
+      showToast("Erro ao adicionar música: " + error.message, "error");
+      return;
     }
 
-    const newId = crypto.randomUUID();
-    const newSong = { id: newId, title: parsed.title, title_norm: parsed.norm, on_setlist: false, on_rehearsal: false };
-    
-    await window.db.songs.put(newSong);
-    await window.SyncEngine.enqueueOperation("songs", "create", newId, newSong);
-    
     closeModal(el.songModal);
     el.newSongTitle.value = "";
     await loadSongs();
@@ -366,9 +454,13 @@
     state.selectedSong = state.songs.find(s => s.id === songId);
     if (!state.selectedSong) return;
 
-    const keysData = await window.db.song_keys.where('song_id').equals(songId).toArray();
+    const { data: keysData, error } = await window.supabaseClient.from('song_keys').select('*').eq('song_id', songId);
+    if (error) {
+      console.error("Erro ao carregar tons:", error);
+      showToast("Erro ao carregar tons: " + error.message, "error");
+    }
     const mapByMember = new Map((keysData || []).map(k => [k.member_name, k]));
-    
+
     state.selectedKeys = MEMBERS.map(name => {
       const ex = mapByMember.get(name);
       return { id: ex?.id || crypto.randomUUID(), member_name: name, key: ex?.key || "" };
@@ -380,6 +472,13 @@
     el.notesField.value = state.selectedSong.notes || "";
 
     el.detailTitle.textContent = state.selectedSong.title;
+
+    // Compartilhamento é só para o dono da música — RLS já protege os dados,
+    // isso aqui é só pra não mostrar a aba pra quem não pode usá-la.
+    const isOwner = !!(state.selectedSong.owner_id && state.selectedSong.owner_id === getCurrentUserId());
+    el.tabShare.classList.toggle("hidden", !isOwner);
+    if (isOwner) renderShareList();
+
     switchDetailTab("keys");
     renderKeyFields();
     openModal(el.detailModal);
@@ -389,8 +488,10 @@
     state.detailTab = tab;
     el.tabKeys.classList.toggle("tab-active", tab === "keys");
     el.tabLyrics.classList.toggle("tab-active", tab === "lyrics");
+    el.tabShare.classList.toggle("tab-active", tab === "share");
     el.paneKeys.classList.toggle("hidden", tab !== "keys");
     el.paneLyrics.classList.toggle("hidden", tab !== "lyrics");
+    el.paneShare.classList.toggle("hidden", tab !== "share");
   }
 
   function renderKeyFields() {
@@ -412,7 +513,7 @@
       btnPrev.onclick = () => { let i = KEY_OPTIONS.indexOf(state.selectedKeys[index].key) - 1; if (i < 0) i = KEY_OPTIONS.length - 1; state.selectedKeys[index].key = KEY_OPTIONS[i]; updateDisplay(); };
       btnNext.onclick = () => { let i = KEY_OPTIONS.indexOf(state.selectedKeys[index].key) + 1; if (i >= KEY_OPTIONS.length) i = 0; state.selectedKeys[index].key = KEY_OPTIONS[i]; updateDisplay(); };
       display.onclick = () => { state.selectedKeys[index].key = ""; updateDisplay(); };
-      
+
       updateDisplay();
       selector.append(btnPrev, display, btnNext);
       wrap.append(label, selector);
@@ -427,12 +528,14 @@
       member_name: i.member_name,
       key: i.key || null
     }));
-    
-    for (const p of payloads) {
-       await window.db.song_keys.put(p);
-       await window.SyncEngine.enqueueOperation("song_keys", "update", p.id, p);
+
+    const { error } = await window.supabaseClient.from('song_keys').upsert(payloads);
+    if (error) {
+      console.error("Erro ao salvar tons:", error);
+      showToast("Erro ao salvar tons: " + error.message, "error");
+      return;
     }
-    
+
     state.keysCache[state.selectedSong.id] = state.selectedKeys.filter(k => k.key).map(k => ({ member_name: k.member_name, key: k.key }));
     closeModal(el.detailModal);
     renderSongs();
@@ -446,9 +549,14 @@
       lyrics: el.lyricsField.value.trim() || null,
       notes: el.notesField.value.trim() || null
     };
-    await window.db.songs.update(state.selectedSong.id, updatePayload);
-    await window.SyncEngine.enqueueOperation("songs", "update", state.selectedSong.id, updatePayload);
-    
+
+    const { error } = await window.supabaseClient.from('songs').update(updatePayload).eq('id', state.selectedSong.id);
+    if (error) {
+      console.error("Erro ao salvar dados:", error);
+      showToast("Erro ao salvar dados: " + error.message, "error");
+      return;
+    }
+
     closeModal(el.detailModal);
     showToast("Dados salvos!", "success");
   }
@@ -456,10 +564,14 @@
   async function deleteSong() {
     const ok = await showConfirm(`Excluir "${state.selectedSong.title}"?`);
     if (!ok) return;
-    
-    await window.db.songs.delete(state.selectedSong.id);
-    await window.SyncEngine.enqueueOperation("songs", "delete", state.selectedSong.id, {});
-    
+
+    const { error } = await window.supabaseClient.from('songs').delete().eq('id', state.selectedSong.id);
+    if (error) {
+      console.error("Erro ao excluir:", error);
+      showToast("Erro ao excluir: " + error.message, "error");
+      return;
+    }
+
     closeModal(el.detailModal);
     await loadSongs();
     showToast("Música excluída.");
@@ -475,27 +587,16 @@
     }
     if (!processed.length) return;
 
-    const existingLocal = await window.db.songs.where('title_norm').anyOf(processed.map(i => i.norm)).toArray();
-    const existingSet = new Set(existingLocal.map(i => i.title_norm));
-
-    // Também checa duplicatas no servidor (quando online) — sem isso, uma
-    // música já existente em outro dispositivo (ainda não sincronizada aqui)
-    // seria reenviada, falharia por violar o unique de title_norm e sumiria
-    // silenciosamente no próximo fullSync (ver mesmo cuidado em addSong()).
-    if (window.SyncEngine.isOnline() && window.supabaseClient) {
-      const stillUnknown = processed.filter(i => !existingSet.has(i.norm)).map(i => i.norm);
-      if (stillUnknown.length) {
-        try {
-          const { data: remoteExisting } = await window.supabaseClient
-            .from('songs').select('title_norm').in('title_norm', stillUnknown);
-          (remoteExisting || []).forEach(r => existingSet.add(r.title_norm));
-        } catch (e) {
-          console.error("Erro ao checar duplicatas remotas no import:", e);
-        }
-      }
+    const { data: existing, error: checkErr } = await window.supabaseClient
+      .from('songs').select('title_norm').in('title_norm', processed.map(p => p.norm));
+    if (checkErr) {
+      console.error("Erro ao verificar duplicidade:", checkErr);
+      showToast("Erro ao verificar duplicidade: " + checkErr.message, "error");
+      return;
     }
+    const existingSet = new Set((existing || []).map(r => r.title_norm));
 
-    const toInsert = processed.filter(i => !existingSet.has(i.norm));
+    const toInsert = processed.filter(p => !existingSet.has(p.norm));
     const skipped = processed.length - toInsert.length;
 
     if (!toInsert.length) {
@@ -504,17 +605,17 @@
       return;
     }
 
-    const newSongs = toInsert.map(item => ({
-      id: crypto.randomUUID(), title: item.title, title_norm: item.norm, on_setlist: false, on_rehearsal: false
+    const rowsToInsert = toInsert.map(item => ({
+      title: item.title, title_norm: item.norm, on_setlist: false, on_rehearsal: false
     }));
 
-    // Insere e sincroniza em lotes de CHUNK_SIZE em vez de um item por vez,
-    // reduzindo o número de operações sequenciais para listas grandes.
-    for (let i = 0; i < newSongs.length; i += CHUNK_SIZE) {
-      const chunk = newSongs.slice(i, i + CHUNK_SIZE);
-      await window.db.songs.bulkPut(chunk);
-      for (const song of chunk) {
-        await window.SyncEngine.enqueueOperation("songs", "create", song.id, song);
+    for (let i = 0; i < rowsToInsert.length; i += CHUNK_SIZE) {
+      const chunk = rowsToInsert.slice(i, i + CHUNK_SIZE);
+      const { error } = await window.supabaseClient.from('songs').insert(chunk);
+      if (error) {
+        console.error("Erro ao importar:", error);
+        showToast("Erro ao importar: " + error.message, "error");
+        return;
       }
     }
 
@@ -524,6 +625,75 @@
       (skipped > 0 ? ` — ${skipped} já existente(s) ignorada(s).` : ".");
     el.importSummary.classList.remove("hidden");
     showToast("Músicas importadas!", "success");
+  }
+
+  // ===================== COMPARTILHAMENTO =====================
+  async function renderShareList() {
+    const { data, error } = await window.supabaseClient
+      .from('song_shares').select('*').eq('song_id', state.selectedSong.id).order('created_at');
+    if (error) {
+      console.error("Erro ao carregar compartilhamentos:", error);
+      showToast("Erro ao carregar compartilhamentos: " + error.message, "error");
+      return;
+    }
+
+    el.shareList.innerHTML = "";
+    const shares = data || [];
+    el.shareEmptyState.style.display = shares.length ? "none" : "block";
+
+    shares.forEach(share => {
+      const li = document.createElement("li");
+      li.className = "share-item";
+
+      const info = document.createElement("div");
+      const email = document.createElement("span");
+      email.className = "share-item-email";
+      email.textContent = share.shared_with_email;
+      const perm = document.createElement("span");
+      perm.className = "share-item-perm";
+      perm.textContent = share.can_edit ? " · pode editar" : " · somente ver";
+      info.append(email, perm);
+
+      const removeBtn = document.createElement("button");
+      removeBtn.className = "star-btn";
+      removeBtn.innerHTML = `<span class="material-symbols-outlined">close</span>`;
+      removeBtn.setAttribute("aria-label", `Remover compartilhamento com ${share.shared_with_email}`);
+      removeBtn.addEventListener("click", () => removeShare(share.id));
+
+      li.append(info, removeBtn);
+      el.shareList.appendChild(li);
+    });
+  }
+
+  async function addShare() {
+    const email = (el.shareEmailField.value || "").trim().toLowerCase();
+    if (!email) return;
+
+    const { error } = await window.supabaseClient.from('song_shares').insert({
+      song_id: state.selectedSong.id,
+      shared_with_email: email,
+      can_edit: el.shareCanEdit.checked
+    });
+    if (error) {
+      console.error("Erro ao compartilhar:", error);
+      showToast("Erro ao compartilhar: " + error.message, "error");
+      return;
+    }
+
+    el.shareEmailField.value = "";
+    el.shareCanEdit.checked = false;
+    showToast("Compartilhado!", "success");
+    renderShareList();
+  }
+
+  async function removeShare(shareId) {
+    const { error } = await window.supabaseClient.from('song_shares').delete().eq('id', shareId);
+    if (error) {
+      console.error("Erro ao remover compartilhamento:", error);
+      showToast("Erro ao remover: " + error.message, "error");
+      return;
+    }
+    renderShareList();
   }
 
   // ===================== EVENTOS =====================
@@ -539,25 +709,32 @@
     el.confirmImport.addEventListener("click", bulkImport);
     el.tabKeys.addEventListener("click",       () => switchDetailTab("keys"));
     el.tabLyrics.addEventListener("click",     () => switchDetailTab("lyrics"));
+    el.tabShare.addEventListener("click",      () => switchDetailTab("share"));
     el.saveAllKeys.addEventListener("click",   saveAllKeys);
     el.saveLyrics.addEventListener("click",    saveLyrics);
     el.deleteSongBtn.addEventListener("click", deleteSong);
-    
+    el.addShareBtn.addEventListener("click",   addShare);
+
     el.navRepertorio.addEventListener("click", () => switchPage("repertorio"));
     el.navCulto.addEventListener("click", () => switchPage("culto"));
     el.navEnsaio.addEventListener("click", () => switchPage("ensaio"));
-    
+
     // AÇÕES CULTO
     el.clearSetlistBtn.addEventListener("click", async () => {
       const ok = await showConfirm("Remover todas as músicas do culto?");
       if (!ok) return;
-      
+
       const cultoSongs = state.songs.filter(s => s.on_setlist === true);
-      for (const s of cultoSongs) {
-         await window.db.songs.update(s.id, { on_setlist: false });
-         await window.SyncEngine.enqueueOperation("songs", "update", s.id, { on_setlist: false });
+      if (!cultoSongs.length) return;
+
+      const { error } = await window.supabaseClient
+        .from('songs').update({ on_setlist: false }).in('id', cultoSongs.map(s => s.id));
+      if (error) {
+        console.error("Erro ao limpar lista:", error);
+        showToast("Erro ao limpar lista: " + error.message, "error");
+        return;
       }
-      
+
       state.songs.forEach(s => s.on_setlist = false);
       renderCultoSongs();
       applyFilter(el.searchInput.value);
@@ -573,7 +750,7 @@
         const key = getMainKey(cached);
         const mainKey = key ? ` (${key})` : "";
         const cifraLink = song.cifra_url || getDefaultCifraSearchUrl(song.title);
-        
+
         text += `${index + 1}. *${song.title}*${mainKey}\n🎸 Cifra: ${cifraLink}\n`;
         if (song.youtube_url) text += `▶️ Ouvir: ${song.youtube_url}\n`;
         if (song.notes) text += `📝 Notas: ${song.notes}\n`;
@@ -588,11 +765,16 @@
     el.clearEnsaioBtn.addEventListener("click", async () => {
       const ok = await showConfirm("Remover todas as músicas da lista de ensaio?");
       if (!ok) return;
-      
+
       const ensaioSongs = state.songs.filter(s => s.on_rehearsal === true);
-      for (const s of ensaioSongs) {
-         await window.db.songs.update(s.id, { on_rehearsal: false });
-         await window.SyncEngine.enqueueOperation("songs", "update", s.id, { on_rehearsal: false });
+      if (!ensaioSongs.length) return;
+
+      const { error } = await window.supabaseClient
+        .from('songs').update({ on_rehearsal: false }).in('id', ensaioSongs.map(s => s.id));
+      if (error) {
+        console.error("Erro ao limpar lista de ensaio:", error);
+        showToast("Erro ao limpar lista: " + error.message, "error");
+        return;
       }
 
       state.songs.forEach(s => s.on_rehearsal = false);
@@ -610,7 +792,7 @@
         const key = getMainKey(cached);
         const mainKey = key ? ` (${key})` : "";
         const cifraLink = song.cifra_url || getDefaultCifraSearchUrl(song.title);
-        
+
         text += `${index + 1}. *${song.title}*${mainKey}\n🎸 Cifra: ${cifraLink}\n`;
         if (song.youtube_url) text += `▶️ Referência: ${song.youtube_url}\n`;
         if (song.notes) text += `📝 Notas: ${song.notes}\n`;
@@ -652,46 +834,18 @@
     bindEvents();
     syncTopBarHeight();
 
-    // Start listening for connectivity and sync
-    if (window.SyncEngine) {
-       window.SyncEngine.setupConnectivityListeners();
-    }
-
-    // Aguarda recuperação do banco, caso esteja rodando (para evitar tentar ler enquanto apaga)
-    if (window.dbRecoveryPromise) {
-      try {
-        await window.dbRecoveryPromise;
-      } catch (e) {
-        console.error("Erro capturado do dbRecoveryPromise:", e);
-      }
-    }
-
-    // Load from local DB immediately (mostra o que já tiver salvo localmente, sem esperar a rede)
     try {
-      await loadSongs(); 
+      await window.ClerkReady;
     } catch (err) {
-      console.error("Erro no loadSongs (banco pode estar aguardando recriação):", err);
+      console.error("Falha ao carregar autenticação (Clerk):", err);
+      el.signInScreen.classList.remove("hidden");
+      el.signInError.textContent = "Não foi possível carregar o login. Verifique sua conexão ou tente novamente mais tarde.";
+      el.signInError.classList.remove("hidden");
+      return;
     }
 
-    // Dispara a sincronização inicial se já estiver online.
-    // O listener de conectividade só reage a uma TRANSIÇÃO pra online (evento 'online'),
-    // então um app aberto direto já conectado (1ª visita, celular, outra aba) nunca
-    // disparava o fullSync automaticamente — por isso o banco ficava vazio até alguém
-    // chamar SyncEngine.fullSync() manualmente.
-    if (window.SyncEngine && navigator.onLine) {
-      window.SyncEngine.fullSync().catch(err => {
-        console.error("Erro na sincronização inicial:", err);
-      });
-      // loadSongs() roda de novo automaticamente quando o sync terminar,
-      // via o listener 'vivos-sync-completed' já registrado acima.
-    }
-    
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get("tab") === "culto") {
-      switchPage("culto");
-    } else if (urlParams.get("tab") === "ensaio") {
-      switchPage("ensaio");
-    }
+    renderAuthState();
+    window.Clerk.addListener(() => renderAuthState());
   }
 
   init();
